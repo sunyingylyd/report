@@ -129,7 +129,39 @@
 <span class="cl"><b>③ 漏损可控：</b>模型漏掉的用户提单率不足 0.3%，筛选几乎无误伤高意向用户。</span>
 </div>
 
-<h2>五、模型价值总结与优化方向</h2>
+<h2>五、模型排序能力验证（score/tier 提单率）</h2>
+<p class="desc">模型产出的意愿分（score/tier）应在时间外数据上呈现「分数越高、提单率越高」的单调关系，这是评价模型预测准确度与价值的最直接证据——若高分段提单率显著高于低分段，说明模型排序有效、能精准定位高意向用户。</p>
+<div class="table"><table>
+<caption>tier 提单率（时间外验证 9/10~9/13）</caption>
+<thead><tr><th>tier</th><th>用户数</th><th>提单数</th><th>提单率</th></tr></thead>
+<tbody>
+<tr><td>S 极高意向</td><td>771</td><td>102</td><td class="good">13.23%</td></tr>
+<tr><td>A 高意向</td><td>472</td><td>32</td><td>6.78%</td></tr>
+<tr><td>B 中意向</td><td>606</td><td>40</td><td>6.60%</td></tr>
+<tr><td>C 低意向</td><td>5,943</td><td>110</td><td class="bad">1.85%</td></tr>
+</tbody>
+</table></div>
+<div class="table"><table>
+<caption>score 分段提单率（时间外验证 9/10~9/13）</caption>
+<thead><tr><th>意愿分分段</th><th>用户数</th><th>提单数</th><th>提单率</th><th>平均意愿分</th></tr></thead>
+<tbody>
+<tr><td>S（≥50）</td><td>1,069</td><td>120</td><td class="good">11.23%</td><td>80.7</td></tr>
+<tr><td>A（20~49）</td><td>780</td><td>54</td><td>6.92%</td><td>26.9</td></tr>
+<tr><td>B（10~19）</td><td>2,444</td><td>68</td><td>2.78%</td><td>13.3</td></tr>
+<tr><td>C（&lt;10）</td><td>3,499</td><td>42</td><td class="bad">1.20%</td><td>6.0</td></tr>
+</tbody>
+</table></div>
+<section class="grid g2">
+<article class="chart"><h3>tier 提单率（时间外）</h3><p>提单率随 tier 单调递减，S 级 13.23% 是 C 级 1.85% 的 7 倍。</p><div class="box"><canvas id="c9"></canvas></div></article>
+<article class="chart"><h3>score 分段提单率（时间外）</h3><p>意愿分越高提单率越高，单调性清晰，验证模型排序能力。</p><div class="box"><canvas id="c10"></canvas></div></article>
+</section>
+<div class="callout"><div class="ch">排序能力结论</div>
+<span class="cl"><b>① 单调性验证有效：</b>tier 提单率 S 13.23% &gt; A 6.78% ≈ B 6.60% &gt; C 1.85%，score 分段 S 11.23% &gt; A 6.92% &gt; B 2.78% &gt; C 1.20%，均呈单调递减，证明模型排序能力有效。</span>
+<span class="cl"><b>② 高分段价值显著：</b>S 级提单率是 C 级的 7 倍（13.23% vs 1.85%），模型能精准把高意向用户排到前列，触达 S 级用户 ROI 最高。</span>
+<span class="cl"><b>③ 存在不足：</b>A 与 B 提单率几乎无差异（6.78% vs 6.60%），说明中分段区分度不足，后续可优化分段边界或特征。</span>
+</div>
+
+<h2>六、模型价值总结与优化方向</h2>
 <section class="note">
 <div class="insight"><div class="idx">01</div><div><h3>价值：精准压缩触达人群，降低营销成本。</h3><p>0818 名单用 31.7% 用户覆盖 83.2% 提单，触达成本降 68%，提单率提升 2.6 倍，是模型的核心价值。</p></div></div>
 <div class="insight"><div class="idx">02</div><div><h3>价值：可解释、可落地的评分公式。</h3><p>逻辑回归系数直观反映「获额通过 &gt; 深层行为 &gt; 活跃时长」的信号排序，评分公式可直接落地到 SQL，实时打分。</p></div></div>
@@ -231,6 +263,35 @@ FROM recall r
 LEFT JOIN first_apply fa ON fa.user_id = r.uid
 LEFT JOIN subset s ON s.uid = r.uid
 GROUP BY r.src;
+
+-- 【块4】模型排序能力验证：tier / score 分段提单率（时间外验证 9/10~9/13）
+WITH applied AS (
+    SELECT DISTINCT o.user_id
+    FROM wangchuanliang.order_loan_f_v2_copy o
+    JOIN wangchuanliang.t7recall_active0910 t ON o.user_id = t.churn_user_id::int
+    WHERE o.apply_date BETWEEN DATE &#x27;2026-09-10&#x27; AND DATE &#x27;2026-09-13&#x27;
+)
+SELECT t.tier, COUNT(*) AS 用户数, COUNT(a.user_id) AS 提单数,
+    ROUND(COUNT(a.user_id)::numeric/COUNT(*)*100,2) AS 提单率
+FROM wangchuanliang.t7recall_active0910 t
+LEFT JOIN applied a ON a.user_id = t.churn_user_id::int
+GROUP BY t.tier ORDER BY t.tier;
+
+-- 【块5】score 分段提单率（时间外验证 9/10~9/13）
+WITH applied AS (
+    SELECT DISTINCT o.user_id
+    FROM wangchuanliang.order_loan_f_v2_copy o
+    JOIN wangchuanliang.t7recall_active0910 t ON o.user_id = t.churn_user_id::int
+    WHERE o.apply_date BETWEEN DATE &#x27;2026-09-10&#x27; AND DATE &#x27;2026-09-13&#x27;
+)
+SELECT CASE WHEN t.score&gt;=50 THEN &#x27;S(&gt;=50)&#x27; WHEN t.score&gt;=20 THEN &#x27;A(20~49)&#x27;
+            WHEN t.score&gt;=10 THEN &#x27;B(10~19)&#x27; ELSE &#x27;C(&lt;10)&#x27; END AS 分段,
+    COUNT(*) AS 用户数, COUNT(a.user_id) AS 提单数,
+    ROUND(COUNT(a.user_id)::numeric/COUNT(*)*100,2) AS 提单率,
+    ROUND(AVG(t.score),1) AS 平均意愿分
+FROM wangchuanliang.t7recall_active0910 t
+LEFT JOIN applied a ON a.user_id = t.churn_user_id::int
+GROUP BY 1 ORDER BY 1 DESC;
 </pre>
 </details>
 
@@ -276,4 +337,6 @@ new Chart(document.getElementById('c5'),{type:'bar',data:{labels:['获额通过'
 new Chart(document.getElementById('c6'),{type:'line',data:{labels:['0~10%','10~20%','20~30%','30~40%','40~50%','50~60%','60~70%','70~80%','80~90%','90~100%'],datasets:[{label:'提单率 %',data:[0.1,0.1,0.2,0.4,0.4,0.5,0.7,1.1,34.7,83.5],borderColor:'#f68ab0',backgroundColor:'#f68ab0',tension:.25,pointRadius:3,fill:false}]},options:pctOpts(100)});
 new Chart(document.getElementById('c7'),{type:'bar',data:{labels:['0902','0818_0819'],datasets:[{label:'完整名单提单率 %',data:[4.46,1.09],backgroundColor:'#43c7e7',borderRadius:3},{label:'子集提单率 %',data:[5.36,2.87],backgroundColor:'#64dcae',borderRadius:3}]},options:pctOpts(6)});
 new Chart(document.getElementById('c8'),{type:'bar',data:{labels:['0902','0818_0819'],datasets:[{label:'用户占比 %',data:[82.6,31.7],backgroundColor:'#43c7e7',borderRadius:3},{label:'提单覆盖率 %',data:[99.2,83.2],backgroundColor:'#64dcae',borderRadius:3}]},options:pctOpts(110)});
+new Chart(document.getElementById('c9'),{type:'bar',data:{labels:['S极高','A高','B中','C低'],datasets:[{label:'提单率 %',data:[13.23,6.78,6.60,1.85],backgroundColor:['#64dcae','#43c7e7','#ffc26b','#f68ab0'],borderRadius:3}]},options:pctOpts(15)});
+new Chart(document.getElementById('c10'),{type:'bar',data:{labels:['S(≥50)','A(20~49)','B(10~19)','C(<10)'],datasets:[{label:'提单率 %',data:[11.23,6.92,2.78,1.20],backgroundColor:['#64dcae','#43c7e7','#ffc26b','#f68ab0'],borderRadius:3}]},options:pctOpts(13)});
 </script></body></html>
