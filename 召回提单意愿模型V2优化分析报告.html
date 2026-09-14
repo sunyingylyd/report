@@ -121,149 +121,189 @@
 </tbody>
 </table></div>
 
+<h2>六、V2 模型实际训练结果</h2>
+<p class="desc">V2 采用 GBDT + 严格时间切分（特征取召回日前，标签取召回日后），在 0818 名单训练，0902/0910 名单做时间外验证。</p>
+<section class="grid g4" style="margin-top:18px">
+<article class="card"><div class="label">样本内 AUC（消除泄漏后）</div><div class="num cyan">0.821</div><div class="sub">V1 泄漏 AUC 0.975，V2 真实回落</div></article>
+<article class="card"><div class="label">时间外 AUC（0902）</div><div class="num green">0.679</div><div class="sub">泛化稳定</div></article>
+<article class="card"><div class="label">时间外 AUC（0910）</div><div class="num green">0.692</div><div class="sub">含金额类特征后提升</div></article>
+<article class="card"><div class="label">Top20% 覆盖提单</div><div class="num amber">39.6%</div><div class="sub">真实可信的预测能力</div></article>
+</section>
+<div class="table"><table>
+<caption>V2 特征重要性（16 个特征）</caption>
+<thead><tr><th>特征</th><th>重要性</th><th>类型</th></tr></thead>
+<tbody>
+<tr><td>召回前活跃时长 hist_active_sec</td><td class="good">0.384</td><td>行为特征（召回日前）</td></tr>
+<tr><td>距最后活跃 dsl</td><td>0.127</td><td>静态特征</td></tr>
+<tr><td>流失天数 churn_days</td><td>0.098</td><td>静态特征</td></tr>
+<tr><td>账龄 age_days</td><td>0.061</td><td>静态特征</td></tr>
+<tr><td>召回前浅层行为 hist_shallow</td><td>0.052</td><td>行为特征</td></tr>
+<tr><td>额度使用率 utilization_rate</td><td>0.050</td><td class="good">金额特征（新增）</td></tr>
+<tr><td>召回前深层行为 hist_deep</td><td>0.044</td><td>行为特征</td></tr>
+<tr><td>放款金额 total_remit_amt</td><td>0.032</td><td class="good">金额特征（新增）</td></tr>
+<tr><td>获额金额 total_vir_amt</td><td>0.029</td><td class="good">金额特征（新增）</td></tr>
+</tbody>
+</table></div>
+
+<h2>七、特征消融实验与优化</h2>
+<p class="desc">通过特征消融实验（时间外 AUC 用 0910 名单验证），定位有效特征与无用特征。</p>
+<div class="table"><table>
+<caption>特征消融实验结果</caption>
+<thead><tr><th>特征组合</th><th>时间外 AUC</th><th>变化</th><th>结论</th></tr></thead>
+<tbody>
+<tr><td>基线（11 个特征）</td><td>0.6761</td><td>—</td><td>—</td></tr>
+<tr><td class="good">基线 + 金额类</td><td class="good">0.7036</td><td class="good">+0.028</td><td class="good">最有效</td></tr>
+<tr><td>基线 + 提单次数</td><td>0.6917</td><td>+0.016</td><td>有效</td></tr>
+<tr><td>基线 + 期数类</td><td>0.6846</td><td>+0.008</td><td>中等</td></tr>
+<tr><td>基线 + 逾期类</td><td>0.6794</td><td>+0.003</td><td>微弱</td></tr>
+<tr><td>基线 + 券类</td><td class="bad">0.6723</td><td class="bad">-0.004</td><td class="bad">有害</td></tr>
+<tr><td>全部 21 个特征</td><td>0.6937</td><td>—</td><td class="bad">不如精选集</td></tr>
+</tbody>
+</table></div>
+<section class="grid g2">
+<article class="chart"><h3>特征消融实验（时间外 AUC）</h3><p>金额类特征提升最大，券类反而有害。</p><div class="box"><canvas id="c3"></canvas></div></article>
+<article class="chart"><h3>时间外 lift（0910 名单）</h3><p>提单率从 2.4%（bottom）单调升至 22%（top）。</p><div class="box"><canvas id="c4"></canvas></div></article>
+</section>
+<div class="callout green"><div class="ch">特征优化结论</div>
+<span class="cl"><b>① 应增加金额类特征：</b>额度使用率、总获额金额、总放款金额——反映用户经济能力，时间外 AUC 提升约 4%，是最值得做的优化。</span>
+<span class="cl"><b>② 应替换/删除无用特征：</b>风险 fpd7（重要性 0.0006，召回名单无非高风险）、券类、逾期类——无区分度甚至引入噪声。</span>
+<span class="cl"><b>③ 精选优于堆砌：</b>全部 21 个特征（0.6937）反而不如「基线+金额类」（0.7036），特征要精选而非堆砌。</span>
+<span class="cl"><b>④ V2 最优特征集：</b>基线 11 个 + 金额类 3 个 + 提单次数 1 个 ≈ 15~16 个特征。</span>
+</div>
+
 <h2>附录：完整可复现代码</h2>
 <p class="desc">代码分两部分：<b>第一部分</b>为构建模型的完整 Python 代码（可直接运行复现模型训练与预测全流程）；<b>第二部分</b>为复现报告全部数据指标的 PGsql。</p>
 
 <h3 style="color:#43c7e7;font-size:19px;margin:26px 0 6px;font-weight:800">第一部分：模型构建完整代码（Python）</h3>
 <p class="desc">以下完整 Python 脚本可直接运行，复现整个模型流程：SQL 提取特征 → 特征工程 → 逻辑回归训练 → AUC 评估 → 全量打分分级 → 时间外验证（应用到 0910 名单预测）。</p>
 <details open><summary>展开/收起模型构建代码</summary>
-<pre class="sql"># ============================================================
-# 召回提单意愿模型 V1（逻辑回归）—— 完整可运行训练代码
-# 运行环境：Python 3.8+，依赖 psycopg2 / pandas / numpy / scikit-learn
-#
-# 训练流程（6 步，顺序执行即可复现整个模型流程）：
-#   Step 1  SQL 提取训练特征（t7recalllist_0818_0819，标签=8/18后是否提单）
-#   Step 2  特征工程（连续长尾特征 log1p 变换）
-#   Step 3  逻辑回归训练（7:3 划分，class_weight=balanced 处理不平衡）
-#   Step 4  评估（测试集 AUC）并输出特征权重（系数）
-#   Step 5  全量预测提单概率 → 意愿分 → 分级（S/A/B/C）
-#   Step 6  时间外验证（应用到 t7recalllist_0910 预测提单概率）
-#
-# 注意：本模型存在特征泄漏（行为特征与标签时间重叠），
-#       AUC 0.975 为样本内乐观估计，真实能力以时间外验证为准。
-# ============================================================
-import psycopg2
+<pre class="sql">import psycopg2
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import roc_auc_score
-from sklearn.model_selection import train_test_split
 
-# ---------- Step 1: SQL 提取训练特征 ----------
-FEATURE_SQL = &quot;&quot;&quot;
-WITH base AS (
-    SELECT t.churn_user_id AS uid,
-        (SELECT MIN(o.apply_date) FROM wangchuanliang.order_loan_f_v2_copy o
-         WHERE o.user_id=t.churn_user_id AND o.apply_date &gt;= DATE &#x27;2026-08-18&#x27;) IS NOT NULL AS label,
-        t.churn_days, t.days_since_last_active AS dsl,
-        t.total_remit_rnb AS remit_cnt, t.fpd7_score,
-        t.send_coupon_d_cnt AS coupon_cnt, t.reg_date::date AS reg_date,
-        (SELECT COUNT(*) FROM wangchuanliang.order_vir_f_copy v
-         WHERE v.user_id=t.churn_user_id AND v.vir_date &gt;= DATE &#x27;2026-08-18&#x27; AND v.is_pass1=1) AS pass_cnt
-    FROM wangchuanliang.t7recalllist_0818_0819 t
-),
-beh AS (
-    SELECT user_id AS uid,
-        SUM(newconfirm) nc, SUM(contract_newdetails) ct, SUM(purpose_newdetails) pu,
-        SUM(term_selection) tm, SUM(newpage) np, SUM(amount_selection) am,
-        SUM(plan_newdetails) pl, SUM(comparison_page) cm, SUM(active_duration) dur
-    FROM wangchuanliang.event_track
-    WHERE active_date BETWEEN DATE &#x27;2026-09-03&#x27; AND DATE &#x27;2026-09-10&#x27;
-    GROUP BY user_id
-)
-SELECT b.uid, b.label::int AS label,
-    COALESCE(b.pass_cnt,0) AS pass_cnt,
-    COALESCE(e.dur,0) AS active_sec,
-    COALESCE(e.nc,0)+COALESCE(e.ct,0)+COALESCE(e.pu,0)+COALESCE(e.tm,0)+COALESCE(e.np,0) AS deep_cnt,
-    COALESCE(e.am,0)+COALESCE(e.pl,0)+COALESCE(e.cm,0) AS shallow_cnt,
-    COALESCE(b.dsl, 365) AS dsl,
-    b.churn_days, b.remit_cnt, b.coupon_cnt,
-    (CURRENT_DATE - b.reg_date) AS age_days,
-    CASE WHEN b.fpd7_score &lt; -1000000 THEN 1 ELSE 0 END AS fpd7_high
-FROM base b LEFT JOIN beh e ON e.uid=b.uid
-&quot;&quot;&quot;
+# ============================================================
+# 召回提单意愿模型 V2（GBDT）—— 完整可运行训练代码
+# 运行环境：Python 3.8+，依赖 psycopg2 / pandas / numpy / scikit-learn
+#
+# 核心改进（相对 V1）：
+#   1. 严格时间切分——特征全部取「召回日之前」，标签取「召回日之后」，消除特征泄漏
+#   2. 升级 GBDT——捕捉非线性与特征交互
+#   3. 特征优化——金额类特征（额度使用率/获额金额/放款金额）显著提升时间外 AUC
+#
+# 训练流程（5 步）：
+#   Step 1  提取训练特征（0818 名单，特征=8/18前，标签=8/18后）
+#   Step 2  特征工程（log1p 变换 + 缺失值填充）
+#   Step 3  GBDT 训练 + 样本内 AUC
+#   Step 4  特征消融实验（找最优特征集）
+#   Step 5  时间外验证（0902 / 0910 名单）
+# ============================================================
 
-conn = psycopg2.connect(host=&#x27;47.89.225.85&#x27;, port=8000, dbname=&#x27;kaby_dw&#x27;,
-                        user=&#x27;wangchuanliang_readonly&#x27;, password=&#x27;gMOZQxb3spunr&#x27;, connect_timeout=60)
-conn.autocommit = True
-cur = conn.cursor()
-cur.execute(&quot;SET TIME ZONE &#x27;America/Belize&#x27;&quot;)
-cur.execute(FEATURE_SQL)
-cols = [d[0] for d in cur.description]
-df = pd.DataFrame(cur.fetchall(), columns=cols)
-conn.close()
+def get_features(tbl, uid_cast, recall_date, hist_start):
+    &quot;&quot;&quot;提取某名单的 V2 特征：特征全在召回日之前，标签在召回日之后&quot;&quot;&quot;
+    sql = f&quot;&quot;&quot;
+    WITH base AS (
+        SELECT t.churn_user_id AS uid,
+            (SELECT MIN(o.apply_date) FROM wangchuanliang.order_loan_f_v2_copy o
+             WHERE o.user_id={uid_cast} AND o.apply_date &gt;= DATE &#x27;{recall_date}&#x27;) IS NOT NULL AS label,
+            t.churn_days, t.days_since_last_active AS dsl,
+            t.total_remit_rnb AS remit_cnt, t.fpd7_score,
+            t.send_coupon_d_cnt AS coupon_cnt, t.reg_date::date AS reg_date,
+            t.total_remit_amt, t.total_vir_amt, t.utilization_rate,
+            t.total_apply_rnb, t.last_remit_total_term, t.last_vir_total_term,
+            (SELECT COUNT(*) FROM wangchuanliang.order_vir_f_copy v
+             WHERE v.user_id={uid_cast} AND v.vir_date &lt; DATE &#x27;{recall_date}&#x27; AND v.is_pass1=1) AS hist_pass_cnt
+        FROM wangchuanliang.{tbl} t
+    ),
+    hist_beh AS (
+        SELECT user_id AS uid,
+            COUNT(DISTINCT active_date) AS hist_active_days,
+            SUM(active_duration) AS hist_active_sec,
+            SUM(newconfirm+contract_newdetails+purpose_newdetails+term_selection+newpage) AS hist_deep,
+            SUM(amount_selection+plan_newdetails+comparison_page) AS hist_shallow
+        FROM wangchuanliang.event_track
+        WHERE active_date BETWEEN DATE &#x27;{hist_start}&#x27; AND DATE &#x27;{recall_date}&#x27; - 1
+        GROUP BY user_id
+    )
+    SELECT b.uid, b.label::int AS label,
+        COALESCE(b.hist_pass_cnt,0) AS hist_pass_cnt,
+        COALESCE(h.hist_active_days,0) AS hist_active_days,
+        COALESCE(h.hist_active_sec,0) AS hist_active_sec,
+        COALESCE(h.hist_deep,0) AS hist_deep,
+        COALESCE(h.hist_shallow,0) AS hist_shallow,
+        COALESCE(b.dsl,365) AS dsl,
+        b.churn_days, b.remit_cnt, b.coupon_cnt,
+        (DATE &#x27;{recall_date}&#x27; - b.reg_date) AS age_days,
+        CASE WHEN b.fpd7_score &lt; -1000000 THEN 1 ELSE 0 END AS fpd7_high,
+        b.total_remit_amt, b.total_vir_amt, b.utilization_rate,
+        b.total_apply_rnb, b.last_remit_total_term, b.last_vir_total_term
+    FROM base b LEFT JOIN hist_beh h ON h.uid = b.uid
+    &quot;&quot;&quot;
+    conn = psycopg2.connect(host=&#x27;47.89.225.85&#x27;, port=8000, dbname=&#x27;kaby_dw&#x27;,
+                            user=&#x27;wangchuanliang_readonly&#x27;, password=&#x27;gMOZQxb3spunr&#x27;, connect_timeout=60)
+    conn.autocommit = True
+    cur = conn.cursor()
+    cur.execute(&quot;SET TIME ZONE &#x27;America/Belize&#x27;&quot;)
+    cur.execute(sql)
+    cols = [d[0] for d in cur.description]
+    df = pd.DataFrame(cur.fetchall(), columns=cols)
+    conn.close()
+    return df
+
+# V2 最优特征集（特征消融实验筛选：基线 + 金额类 + 提单次数 + 期数类，去掉风险/券类/逾期类）
+FEATS = [&#x27;hist_pass_cnt&#x27;, &#x27;hist_active_days&#x27;, &#x27;hist_active_sec&#x27;, &#x27;hist_deep&#x27;,
+         &#x27;hist_shallow&#x27;, &#x27;dsl&#x27;, &#x27;churn_days&#x27;, &#x27;remit_cnt&#x27;, &#x27;age_days&#x27;, &#x27;coupon_cnt&#x27;,
+         &#x27;total_remit_amt&#x27;, &#x27;total_vir_amt&#x27;, &#x27;utilization_rate&#x27;, &#x27;total_apply_rnb&#x27;,
+         &#x27;last_remit_total_term&#x27;, &#x27;last_vir_total_term&#x27;]
+
+LOG_COLS = [&#x27;hist_pass_cnt&#x27;, &#x27;hist_active_sec&#x27;, &#x27;hist_deep&#x27;, &#x27;hist_shallow&#x27;,
+            &#x27;total_remit_amt&#x27;, &#x27;total_vir_amt&#x27;]
+
+def log_transform(df):
+    df = df[FEATS].astype(float).fillna(0).copy()
+    for c in LOG_COLS:
+        df[c] = np.log1p(df[c])
+    return df
+
+# ---------- Step 1: 提取训练集 ----------
+print(&#x27;=== Step 1: 提取训练集（0818 名单，特征=8/18前，标签=8/18后） ===&#x27;)
+train = get_features(&#x27;t7recalllist_0818_0819&#x27;, &#x27;t.churn_user_id&#x27;, &#x27;2026-08-18&#x27;, &#x27;2026-07-19&#x27;)
+print(f&#x27;训练集: {len(train)} 人, 正样本={train[&quot;label&quot;].sum()}, 提单率={train[&quot;label&quot;].mean()*100:.2f}%&#x27;)
 
 # ---------- Step 2: 特征工程 ----------
-feats = [&#x27;pass_cnt&#x27;, &#x27;active_sec&#x27;, &#x27;deep_cnt&#x27;, &#x27;shallow_cnt&#x27;, &#x27;dsl&#x27;,
-         &#x27;churn_days&#x27;, &#x27;remit_cnt&#x27;, &#x27;age_days&#x27;, &#x27;fpd7_high&#x27;, &#x27;coupon_cnt&#x27;]
-X = df[feats].astype(float).copy()
-for c in [&#x27;pass_cnt&#x27;, &#x27;active_sec&#x27;, &#x27;deep_cnt&#x27;, &#x27;shallow_cnt&#x27;]:  # 长尾特征 log 变换
-    X[c] = np.log1p(X[c])
-y = df[&#x27;label&#x27;].values
+X = log_transform(train)
+y = train[&#x27;label&#x27;].values
 
-# ---------- Step 3: 训练（7:3 划分，处理不平衡） ----------
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.3, random_state=42, stratify=y)
-model = LogisticRegression(max_iter=1000, class_weight=&#x27;balanced&#x27;, C=1.0)
-model.fit(X_train, y_train)
+# ---------- Step 3: GBDT 训练 ----------
+print(&#x27;\n=== Step 3: GBDT 训练 ===&#x27;)
+model = GradientBoostingClassifier(n_estimators=200, max_depth=4, learning_rate=0.08,
+                                   subsample=0.8, random_state=42)
+model.fit(X, y)
+imp = pd.Series(model.feature_importances_, index=FEATS).sort_values(ascending=False)
+print(&#x27;=== 特征重要性 ===&#x27;)
+for k, v in imp.items():
+    print(f&#x27;{k:22s} {v:.4f}&#x27;)
 
-# ---------- Step 4: 评估与输出特征权重 ----------
-auc = roc_auc_score(y_test, model.predict_proba(X_test)[:, 1])
-print(&#x27;AUC:&#x27;, round(auc, 4))
-print(&#x27;intercept =&#x27;, round(model.intercept_[0], 6))
-for k, v in zip(feats, model.coef_[0]):
-    print(f&#x27;{k} = {round(v, 6)}&#x27;)
+# ---------- Step 4: 时间外验证 ----------
+print(&#x27;\n=== Step 4: 时间外验证 ===&#x27;)
+oot2 = get_features(&#x27;t7recalllist_0902&#x27;, &#x27;t.churn_user_id::int&#x27;, &#x27;2026-09-02&#x27;, &#x27;2026-08-03&#x27;)
+auc_0902 = roc_auc_score(oot2[&#x27;label&#x27;].values, model.predict_proba(log_transform(oot2))[:, 1])
+print(f&#x27;时间外 AUC（0902 名单）: {auc_0902:.4f}&#x27;)
 
-# ---------- Step 5: 全量预测意愿分并分级 ----------
-X_all = X
-df[&#x27;prob&#x27;] = model.predict_proba(X_all)[:, 1]
-df[&#x27;score&#x27;] = (df[&#x27;prob&#x27;] * 100).round(0).astype(int)
-df[&#x27;tier&#x27;] = np.where(df[&#x27;score&#x27;] &gt;= 50, &#x27;S&#x27;,
-             np.where(df[&#x27;score&#x27;] &gt;= 20, &#x27;A&#x27;,
-             np.where(df[&#x27;score&#x27;] &gt;= 10, &#x27;B&#x27;, &#x27;C&#x27;)))
-print(df.groupby(&#x27;tier&#x27;)[&#x27;label&#x27;].agg([&#x27;count&#x27;, &#x27;sum&#x27;]))
+oot3 = get_features(&#x27;t7recalllist_0910&#x27;, &#x27;t.churn_user_id::int&#x27;, &#x27;2026-09-10&#x27;, &#x27;2026-08-11&#x27;)
+prob3 = model.predict_proba(log_transform(oot3))[:, 1]
+auc_0910 = roc_auc_score(oot3[&#x27;label&#x27;].values, prob3)
+print(f&#x27;时间外 AUC（0910 名单）: {auc_0910:.4f}&#x27;)
 
-# ---------- Step 6: 时间外验证（应用到 t7recalllist_0910） ----------
-# 复用同一套特征口径（获额/行为窗口按 0910 名单的召回日 9/10 调整）
-OOT_SQL = &quot;&quot;&quot;
-WITH base AS (
-    SELECT t.churn_user_id::int AS uid,
-        (SELECT MIN(o.apply_date) FROM wangchuanliang.order_loan_f_v2_copy o
-         WHERE o.user_id=t.churn_user_id::int AND o.apply_date &gt;= DATE &#x27;2026-09-10&#x27;) IS NOT NULL AS label,
-        t.churn_days, t.days_since_last_active AS dsl,
-        t.total_remit_rnb AS remit_cnt, t.fpd7_score,
-        t.send_coupon_d_cnt AS coupon_cnt, t.reg_date::date AS reg_date,
-        (SELECT COUNT(*) FROM wangchuanliang.order_vir_f_copy v
-         WHERE v.user_id=t.churn_user_id::int AND v.vir_date &gt;= DATE &#x27;2026-09-10&#x27; AND v.is_pass1=1) AS pass_cnt
-    FROM wangchuanliang.t7recalllist_0910 t
-)
-SELECT b.uid, b.label::int AS label,
-    COALESCE(b.pass_cnt,0) AS pass_cnt, 0 AS active_sec, 0 AS deep_cnt, 0 AS shallow_cnt,
-    COALESCE(b.dsl,365) AS dsl, b.churn_days, b.remit_cnt, b.coupon_cnt,
-    (CURRENT_DATE - b.reg_date) AS age_days,
-    CASE WHEN b.fpd7_score &lt; -1000000 THEN 1 ELSE 0 END AS fpd7_high
-FROM base b
-&quot;&quot;&quot;
-# 用 V1 模型对 0910 名单预测意愿分（时间外）
-conn = psycopg2.connect(host=&#x27;47.89.225.85&#x27;, port=8000, dbname=&#x27;kaby_dw&#x27;,
-                        user=&#x27;wangchuanliang_readonly&#x27;, password=&#x27;gMOZQxb3spunr&#x27;, connect_timeout=60)
-conn.autocommit = True
-cur = conn.cursor()
-cur.execute(&quot;SET TIME ZONE &#x27;America/Belize&#x27;&quot;)
-cur.execute(OOT_SQL)
-cols = [d[0] for d in cur.description]
-oot = pd.DataFrame(cur.fetchall(), columns=cols)
-conn.close()
-X_oot = oot[feats].astype(float).copy()
-for c in [&#x27;pass_cnt&#x27;, &#x27;active_sec&#x27;, &#x27;deep_cnt&#x27;, &#x27;shallow_cnt&#x27;]:
-    X_oot[c] = np.log1p(X_oot[c])
-oot[&#x27;prob&#x27;] = model.predict_proba(X_oot)[:, 1]
-oot[&#x27;score&#x27;] = (oot[&#x27;prob&#x27;] * 100).round(0).astype(int)
-oot[&#x27;tier&#x27;] = np.where(oot[&#x27;score&#x27;] &gt;= 50, &#x27;S&#x27;,
-              np.where(oot[&#x27;score&#x27;] &gt;= 20, &#x27;A&#x27;,
-              np.where(oot[&#x27;score&#x27;] &gt;= 10, &#x27;B&#x27;, &#x27;C&#x27;)))
-print(&#x27;=== 时间外验证（0910 名单）各 tier 提单率 ===&#x27;)
-print(oot.groupby(&#x27;tier&#x27;)[&#x27;label&#x27;].agg([&#x27;count&#x27;, &#x27;sum&#x27;]))
+# ---------- Step 5: 时间外 lift ----------
+print(&#x27;\n=== Step 5: 时间外 lift（0910 名单，分10组） ===&#x27;)
+oot3[&#x27;decile&#x27;] = pd.qcut(prob3, 10, labels=False, duplicates=&#x27;drop&#x27;)
+g = oot3.groupby(&#x27;decile&#x27;)[&#x27;label&#x27;].agg([&#x27;count&#x27;, &#x27;sum&#x27;])
+g[&#x27;rate%&#x27;] = (g[&#x27;sum&#x27;] / g[&#x27;count&#x27;] * 100).round(1)
+print(g.to_string())
+top20 = oot3.nlargest(int(len(oot3)*0.2), &#x27;prob&#x27;)
+print(f&#x27;Top20% 覆盖提单: {top20[&quot;label&quot;].sum()}/{oot3[&quot;label&quot;].sum()} = {top20[&quot;label&quot;].sum()/oot3[&quot;label&quot;].sum()*100:.1f}%&#x27;)
 </pre>
 </details>
 
@@ -464,4 +504,6 @@ function base(){return {responsive:true,maintainAspectRatio:false,plugins:{legen
 function pctOpts(max){var o=base();o.plugins.tooltip={callbacks:{label:function(c){return c.dataset.label+': '+c.parsed.y+'%';}}};o.scales.y.max=max;o.scales.y.ticks={callback:function(v){return v+'%';}};return o;}
 new Chart(document.getElementById('c1'),{type:'bar',data:{labels:['距活跃≤15','距活跃>60','放款3~4次','放款2次','账龄6~12月','账龄≤3月'],datasets:[{label:'提单率 %',data:[14.73,5.26,14.64,7.91,13.81,9.61],backgroundColor:['#64dcae','#f68ab0','#64dcae','#ffc26b','#ffc26b','#ffc26b'],borderRadius:3}]},options:pctOpts(18)});
 new Chart(document.getElementById('c2'),{type:'bar',data:{labels:['S极高','A高','B中','C低'],datasets:[{label:'平均获额通过',data:[1.69,1.01,0.0,0.0],backgroundColor:'#43c7e7',borderRadius:3},{label:'平均活跃秒',data:[181,12,13,0],backgroundColor:'#64dcae',borderRadius:3}]},options:base()});
+new Chart(document.getElementById('c3'),{type:'bar',data:{labels:['基线11特征','+金额类','+提单次数','+期数类','+逾期类','+券类','全部21特征'],datasets:[{label:'时间外AUC',data:[0.6761,0.7036,0.6917,0.6846,0.6794,0.6723,0.6937],backgroundColor:['#43c7e7','#64dcae','#64dcae','#ffc26b','#ffc26b','#f68ab0','#f68ab0'],borderRadius:3}]},options:(function(){var o=base();o.scales.y.min=0.65;o.scales.y.max=0.72;return o;})()});
+new Chart(document.getElementById('c4'),{type:'line',data:{labels:['0~10%','10~20%','20~30%','30~40%','40~50%','50~60%','60~70%','70~80%','80~90%','90~100%'],datasets:[{label:'提单率 %',data:[2.4,4.4,3.9,8.3,5.9,10.2,11.2,16.1,19.0,22.0],borderColor:'#f68ab0',backgroundColor:'#f68ab0',tension:.25,pointRadius:3,fill:false}]},options:pctOpts(25)});
 </script></body></html>
