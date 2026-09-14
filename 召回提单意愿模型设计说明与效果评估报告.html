@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>召回提单意愿模型设计说明与效果评估报告</title>
 <style>
-:root{--bg:#071b2f;--p:#0c2944;--line:#2a5c7e;--text:#eff8ff;--muted:#aac5da;--cy:#43c7e7;--gr:#64dcae;--am:#ffc26b;--pk:#f68ab0;--vio:#b49aff;--rd:#ff7b72}*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#06192b,#0b2c47 55%,#071a2d);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}.wrap{max-width:1450px;margin:auto;padding:32px 38px 76px}.hero{text-align:center;padding:38px 15px 28px;border-bottom:1px solid var(--line)}.kicker{color:var(--cy);font-size:14px;letter-spacing:2px;font-weight:700}.hero h1{font-size:32px;line-height:1.25;margin:10px 0}.hero p,.desc,.sub{color:var(--muted);margin:0}.hero-meta{display:inline-block;text-align:left;margin-top:14px;line-height:1.8;color:var(--muted);font-size:14px}.hero-meta .indent{padding-left:3em}h2{font-size:26px;margin:50px 0 8px}.grid{display:grid;gap:18px}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}.card,.chart,.note{background:rgba(10,41,68,.95);border:1px solid var(--line);border-radius:16px;padding:19px}.label{color:var(--muted);font-size:13px}.num{font-size:28px;font-weight:850;line-height:1.2;margin:5px 0}.cyan{color:var(--cy)}.green{color:var(--gr)}.amber{color:var(--am)}.pink{color:var(--pk)}.violet{color:var(--vio)}.red{color:var(--rd)}.chart h3{font-size:17px;margin:0 0 4px}.chart p{font-size:13px;color:var(--muted);margin:0 0 14px}.box{height:330px;position:relative}.callout{background:#0a2a45;border:1px solid #2a5c7e;border-left:4px solid #43c7e7;border-radius:12px;padding:16px 20px;margin:18px 0;line-height:1.75}.callout.red{border-left-color:#f68ab0}.callout.gold{border-left-color:#ffc26b}.callout.green{border-left-color:#64dcae}.callout .ch{font-weight:800;margin-bottom:10px;font-size:14px;color:#fff}.callout .cl{display:block;margin:8px 0}.callout .cl b{color:#43c7e7;margin-right:2px}.insight{display:flex;gap:14px;padding:15px;border:1px solid var(--line);border-radius:12px;background:#0a2a45;margin:10px 0}.idx{font-size:22px;font-weight:800;color:var(--cy);flex:none;width:38px}.insight h3{font-size:15.5px;margin:0 0 4px}.insight p{color:var(--muted);font-size:13.5px;margin:0}.table{overflow-x:auto;margin:14px 0}.table table{width:100%;border-collapse:collapse;font-size:13.5px}.table th,.table td{padding:9px 11px;border-bottom:1px solid rgba(42,92,126,.5);text-align:right;white-space:nowrap}.table th{color:var(--muted);font-weight:600;background:rgba(12,48,78,.6)}.table th:first-child,.table td:first-child{text-align:left}.table tr:hover td{background:rgba(67,199,231,.05)}.total td{font-weight:700;border-top:2px solid #43c7e7;color:#fff}.bad{color:var(--pk)}.good{color:var(--gr)}.foot{color:#7fa6c2;font-size:12.5px;margin-top:50px;border-top:1px solid var(--line);padding-top:16px;line-height:1.9}pre.sql{background:#081726;border:1px solid var(--line);border-radius:14px;padding:18px;overflow:auto;max-height:820px;font-size:12px;line-height:1.6;color:#bfe0f2;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;white-space:pre;tab-size:2}details{margin:14px 0}summary{cursor:pointer;color:var(--cy);font-size:14px;padding:6px 0}
+:root{--bg:#071b2f;--p:#0c2944;--line:#2a5c7e;--text:#eff8ff;--muted:#aac5da;--cy:#43c7e7;--gr:#64dcae;--am:#ffc26b;--pk:#f68ab0;--vio:#b49aff;--rd:#ff7b72}*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#06192b,#0b2c47 55%,#071a2d);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}.wrap{max-width:1450px;margin:auto;padding:32px 38px 76px}.hero{text-align:center;padding:38px 15px 28px;border-bottom:1px solid var(--line)}.kicker{color:var(--cy);font-size:14px;letter-spacing:2px;font-weight:700}.hero h1{font-size:32px;line-height:1.25;margin:10px 0}.hero p,.desc,.sub{color:var(--muted);margin:0}.hero-meta{display:inline-block;text-align:left;margin-top:14px;line-height:1.8;color:var(--muted);font-size:14px}.hero-meta .indent{padding-left:3em}h2{font-size:26px;margin:50px 0 8px}.grid{display:grid;gap:18px}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}.card,.chart,.note{background:rgba(10,41,68,.95);border:1px solid var(--line);border-radius:16px;padding:19px}.label{color:var(--muted);font-size:13px}.num{font-size:28px;font-weight:850;line-height:1.2;margin:5px 0}.cyan{color:var(--cy)}.green{color:var(--gr)}.amber{color:var(--am)}.pink{color:var(--pk)}.violet{color:var(--vio)}.red{color:var(--rd)}.chart h3{font-size:17px;margin:0 0 4px}.chart p{font-size:13px;color:var(--muted);margin:0 0 14px}.box{height:330px;position:relative}.callout{background:#0a2a45;border:1px solid #2a5c7e;border-left:4px solid #43c7e7;border-radius:12px;padding:16px 20px;margin:18px 0;line-height:1.75}.callout.red{border-left-color:#f68ab0}.callout.gold{border-left-color:#ffc26b}.callout.green{border-left-color:#64dcae}.callout .ch{font-weight:800;margin-bottom:10px;font-size:14px;color:#fff}.callout .cl{display:block;margin:8px 0}.callout .cl b{color:#43c7e7;margin-right:2px}.insight{display:flex;gap:14px;padding:15px;border:1px solid var(--line);border-radius:12px;background:#0a2a45;margin:10px 0}.idx{font-size:22px;font-weight:800;color:var(--cy);flex:none;width:38px}.insight h3{font-size:15.5px;margin:0 0 4px}.insight p{color:var(--muted);font-size:13.5px;margin:0}.table{overflow-x:auto;margin:14px 0}.table caption.tb-title{font-size:17px;font-weight:800;color:#43c7e7;text-align:left;margin-bottom:12px;caption-side:top}.table table{width:100%;border-collapse:collapse;font-size:13.5px}.table th,.table td{padding:9px 11px;border-bottom:1px solid rgba(42,92,126,.5);text-align:right;white-space:nowrap}.table th{color:var(--muted);font-weight:600;background:rgba(12,48,78,.6)}.table th:first-child,.table td:first-child{text-align:left}.table tr:hover td{background:rgba(67,199,231,.05)}.total td{font-weight:700;border-top:2px solid #43c7e7;color:#fff}.bad{color:var(--pk)}.good{color:var(--gr)}.foot{color:#7fa6c2;font-size:12.5px;margin-top:50px;border-top:1px solid var(--line);padding-top:16px;line-height:1.9}pre.sql{background:#081726;border:1px solid var(--line);border-radius:14px;padding:18px;overflow:auto;max-height:820px;font-size:12px;line-height:1.6;color:#bfe0f2;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;white-space:pre;tab-size:2}details{margin:14px 0}summary{cursor:pointer;color:var(--cy);font-size:14px;padding:6px 0}
 </style></head><body><main class="wrap">
 
 <header class="hero">
@@ -132,23 +132,23 @@
 <h2>五、模型排序能力验证（score/tier 提单率）</h2>
 <p class="desc">模型产出的意愿分（score/tier）应在时间外数据上呈现「分数越高、提单率越高」的单调关系，这是评价模型预测准确度与价值的最直接证据——若高分段提单率显著高于低分段，说明模型排序有效、能精准定位高意向用户。</p>
 <div class="table"><table>
-<caption>tier 提单率（时间外验证 9/10~9/13）</caption>
+<caption class="tb-title">tier 提单率（时间外验证 9/10~9/13）</caption>
 <thead><tr><th>tier</th><th>用户数</th><th>提单数</th><th>提单率</th></tr></thead>
 <tbody>
-<tr><td>S 极高意向</td><td>771</td><td>102</td><td class="good">13.23%</td></tr>
-<tr><td>A 高意向</td><td>472</td><td>32</td><td>6.78%</td></tr>
-<tr><td>B 中意向</td><td>606</td><td>40</td><td>6.60%</td></tr>
-<tr><td>C 低意向</td><td>5,943</td><td>110</td><td class="bad">1.85%</td></tr>
+<tr><td>S 极高意向（60~115）</td><td>771</td><td>102</td><td class="good">13.23%</td></tr>
+<tr><td>A 高意向（40~58）</td><td>472</td><td>32</td><td>6.78%</td></tr>
+<tr><td>B 中意向（20~38）</td><td>606</td><td>40</td><td>6.60%</td></tr>
+<tr><td>C 低意向（5~19）</td><td>5,943</td><td>110</td><td class="bad">1.85%</td></tr>
 </tbody>
 </table></div>
-<div class="table"><table>
-<caption>score 分段提单率（时间外验证 9/10~9/13）</caption>
+<div class="table" style="margin-top:32px"><table>
+<caption class="tb-title">score 分段提单率（时间外验证 9/10~9/13）</caption>
 <thead><tr><th>意愿分分段</th><th>用户数</th><th>提单数</th><th>提单率</th><th>平均意愿分</th></tr></thead>
 <tbody>
-<tr><td>S（≥50）</td><td>1,069</td><td>120</td><td class="good">11.23%</td><td>80.7</td></tr>
-<tr><td>A（20~49）</td><td>780</td><td>54</td><td>6.92%</td><td>26.9</td></tr>
-<tr><td>B（10~19）</td><td>2,444</td><td>68</td><td>2.78%</td><td>13.3</td></tr>
-<tr><td>C（&lt;10）</td><td>3,499</td><td>42</td><td class="bad">1.20%</td><td>6.0</td></tr>
+<tr><td>≥50</td><td>1,069</td><td>120</td><td class="good">11.23%</td><td>80.7</td></tr>
+<tr><td>20~49</td><td>780</td><td>54</td><td>6.92%</td><td>26.9</td></tr>
+<tr><td>10~19</td><td>2,444</td><td>68</td><td>2.78%</td><td>13.3</td></tr>
+<tr><td>&lt;10</td><td>3,499</td><td>42</td><td class="bad">1.20%</td><td>6.0</td></tr>
 </tbody>
 </table></div>
 <section class="grid g2">
