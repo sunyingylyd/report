@@ -17,16 +17,16 @@
 
 <h2>核心结论</h2>
 <section class="grid g4" style="margin-top:18px">
-<article class="card"><div class="label">模型 AUC</div><div class="num cyan">0.975</div><div class="sub">预测能力极强</div></article>
+<article class="card"><div class="label">样本内 AUC（有特征泄漏）</div><div class="num cyan">0.975</div><div class="sub">仅参考，不代表真实预测能力</div></article>
 <article class="card"><div class="label">最强特征</div><div class="num amber">获额通过 +4.40</div><div class="sub">深层行为 +1.10 次之</div></article>
-<article class="card"><div class="label">Top20% 覆盖提单</div><div class="num green">97.3%</div><div class="sub">3,382 人覆盖 97.3% 提单</div></article>
-<article class="card"><div class="label">落地提单覆盖</div><div class="num violet">83.2%</div><div class="sub">0818 名单触达 -68% 覆盖 83.2%</div></article>
+<article class="card"><div class="label">时间外提单覆盖（真实）</div><div class="num green">83.2%</div><div class="sub">0818 名单用 31.7% 用户覆盖 83.2% 提单</div></article>
+<article class="card"><div class="label">触达成本下降</div><div class="num violet">-68%</div><div class="sub">16,913 → 5,365 人</div></article>
 </section>
 <div class="callout"><div class="ch">核心结论</div>
-<span class="cl"><b>① 模型排序能力强：</b>AUC=0.975，Top 20% 用户覆盖 97.3% 提单，可把触达成本压缩到 1/5。</span>
-<span class="cl"><b>② 获额通过是最强信号：</b>系数 +4.40，远超其他特征，其次深层行为 +1.10、活跃时长 +0.33。</span>
-<span class="cl"><b>③ 特征筛选有据：</b>各特征提单率分桶验证显示，获额通过、活跃时长、行为深度呈强单调关系，是建模的可靠依据。</span>
-<span class="cl"><b>④ 落地效果验证：</b>模型筛选的子集（t7recall_active0910）覆盖 0818 名单 83.2% 提单、0902 名单 99.2% 提单，营销成本大幅下降。</span>
+<span class="cl"><b>① 样本内 AUC 0.975 存在特征泄漏，不能代表真实预测能力：</b>训练时行为特征（确认/合同/提单页等）与提单标签在时间上重叠，模型实质是「用提单痕迹预测提单」，故 Top20% 覆盖 97.3% 为乐观估计，仅供参考。</span>
+<span class="cl"><b>② 真实预测能力以「时间外验证」为准：</b>应用时特征与标签时间分离，模型用 39.3% 的用户（7,792 人）覆盖了 83.2%（0818 名单）的提单，触达成本下降 68%，提单率从 1.09% 提升到 2.87%。</span>
+<span class="cl"><b>③ 获额通过是最强信号：</b>系数 +4.40，远超其他特征，其次深层行为 +1.10、活跃时长 +0.33。</span>
+<span class="cl"><b>④ 特征筛选有据：</b>各特征提单率分桶验证显示，获额通过、活跃时长、行为深度呈强单调关系，是建模的可靠依据。</span>
 </div>
 
 <h2>一、模型设计思路</h2>
@@ -75,9 +75,10 @@
 </div>
 
 <h2>三、模型训练过程与结果</h2>
+<p class="desc">注意：以下为「样本内评估」，训练时行为特征与提单标签时间重叠（存在特征泄漏），AUC 与 lift 均为乐观估计，不代表真实预测能力；真实能力见「四、实际用户提单效果」的时间外验证。</p>
 <section class="grid g2">
 <article class="chart"><h3>特征权重（逻辑回归系数）</h3><p>获额通过 +4.40 绝对主导，深层行为 +1.10、活跃时长 +0.33 次之。</p><div class="box"><canvas id="c5"></canvas></div></article>
-<article class="chart"><h3>模型 lift 曲线（分10组提单率）</h3><p>Top10% 提单率 83.5%，前 80% 几乎不提单。</p><div class="box"><canvas id="c6"></canvas></div></article>
+<article class="chart"><h3>模型 lift 曲线（样本内，分10组提单率）</h3><p>Top10% 提单率 83.5%，前 80% 几乎不提单——此为偷看答案的乐观结果。</p><div class="box"><canvas id="c6"></canvas></div></article>
 </section>
 <div class="table"><table>
 <caption>逻辑回归系数（数据驱动权重）</caption>
@@ -93,7 +94,7 @@
 </tbody>
 </table></div>
 <div class="table"><table>
-<caption>模型 lift 表（按预测概率分10组）</caption>
+<caption>模型 lift 表（样本内评估，按预测概率分10组）</caption>
 <thead><tr><th>分位</th><th>人数</th><th>提单数</th><th>提单率</th><th>累计提单占比</th></tr></thead>
 <tbody>
 <tr><td>0~80%</td><td>13,530</td><td>38</td><td>0.1%~1.1%</td><td>1.8%</td></tr>
@@ -101,14 +102,15 @@
 <tr><td>Top 10%</td><td>1,692</td><td>1,413</td><td class="good">83.5%</td><td>100%</td></tr>
 </tbody>
 </table></div>
-<div class="callout green"><div class="ch">训练结果</div>
-<span class="cl"><b>AUC = 0.975</b>，预测能力极强。</span>
-<span class="cl"><b>Top 20% 用户（3,382 人）覆盖 97.3% 的提单</b>；Top 30%（5,073 人）覆盖 98.2%。</span>
+<div class="callout gold"><div class="ch">训练结果（样本内评估，含特征泄漏，仅参考）</div>
+<span class="cl"><b>⚠️ 样本内 AUC = 0.975，不代表真实预测能力：</b>训练时行为特征（确认/合同/提单页等）与提单标签在时间上重叠，模型实质是「用提单时产生的行为预测提单」，故以下 lift 数字为乐观估计。</span>
+<span class="cl"><b>样本内 lift：</b>Top 20% 用户（3,382 人）覆盖 97.3% 的提单；Top 30%（5,073 人）覆盖 98.2%——此为「偷看答案」的结果，不可作为宣传口径。</span>
+<span class="cl"><b>真实能力见「四、实际用户提单效果」</b>：时间外验证用 39.3% 用户覆盖 83.2% 提单，才是可信效果。</span>
 <span class="cl"><b>落地评分公式</b>：logit = -1.9071 + 4.402·ln(1+获额通过) + 1.102·ln(1+深层行为) + 0.333·ln(1+活跃时长) − 1.308·ln(1+浅层行为) − 0.241·高风险 − 0.0015·流失天数 − 0.0002·距活跃 − 0.0002·账龄 − 0.029·放款次数 − 0.035·发券次数；意愿分 = 1/(1+e^(−logit)) × 100。</span>
 </div>
 
-<h2>四、实际用户提单效果（模型落地验证）</h2>
-<p class="desc">模型产出 t7recall_active0910（高提单意向子集），验证其对完整名单（0902、0818_0819）的提单覆盖效果。</p>
+<h2>四、实际用户提单效果（时间外验证，真实效果）</h2>
+<p class="desc">模型产出 t7recall_active0910（高提单意向子集），验证其对完整名单（0902、0818_0819）的提单覆盖。此处特征（9/9 前活跃）与标签（9/10~9/13 提单）时间分离，是可信的真实预测效果，作为模型能力的评估口径。</p>
 <div class="table"><table>
 <caption>模型落地提单覆盖（首次提单 9/10~9/13）</caption>
 <thead><tr><th>src</th><th>完整名单</th><th>完整提单</th><th>提单率</th><th>子集用户</th><th>子集提单</th><th>子集提单率</th><th>提单覆盖</th></tr></thead>
