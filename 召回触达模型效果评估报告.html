@@ -1,14 +1,14 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>召回结果分析报告</title>
 <style>
-:root{--bg:#071b2f;--p:#0c2944;--line:#2a5c7e;--text:#eff8ff;--muted:#aac5da;--cy:#43c7e7;--gr:#64dcae;--am:#ffc26b;--pk:#f68ab0;--vio:#b49aff;--rd:#ff7b72}*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#06192b,#0b2c47 55%,#071a2d);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}.wrap{max-width:1450px;margin:auto;padding:32px 38px 76px}.hero{text-align:center;padding:38px 15px 28px;border-bottom:1px solid var(--line)}.kicker{color:var(--cy);font-size:14px;letter-spacing:2px;font-weight:700}.hero h1{font-size:32px;line-height:1.25;margin:10px 0}.hero p,.desc,.sub{color:var(--muted);margin:0}.hero-meta{display:inline-block;text-align:left;margin-top:14px;line-height:1.8;color:var(--muted);font-size:14px}.hero-meta .indent{padding-left:3em}h2{font-size:26px;margin:50px 0 8px}.grid{display:grid;gap:18px}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}.card,.chart,.note{background:rgba(10,41,68,.95);border:1px solid var(--line);border-radius:16px;padding:19px}.label{color:var(--muted);font-size:13px}.num{font-size:28px;font-weight:850;line-height:1.2;margin:5px 0}.cyan{color:var(--cy)}.green{color:var(--gr)}.amber{color:var(--am)}.pink{color:var(--pk)}.violet{color:var(--vio)}.red{color:var(--rd)}.chart h3{font-size:17px;margin:0 0 4px}.chart p{font-size:13px;color:var(--muted);margin:0 0 14px}.box{height:330px;position:relative}.callout{background:#0a2a45;border:1px solid #2a5c7e;border-left:4px solid #43c7e7;border-radius:12px;padding:16px 20px;margin:18px 0;line-height:1.75}.callout.red{border-left-color:#f68ab0}.callout.gold{border-left-color:#ffc26b}.callout.green{border-left-color:#64dcae}.callout .ch{font-weight:800;margin-bottom:10px;font-size:14px;color:#fff}.callout .cl{display:block;margin:8px 0}.callout .cl b{color:#43c7e7;margin-right:2px}.insight{display:flex;gap:14px;padding:15px;border:1px solid var(--line);border-radius:12px;background:#0a2a45;margin:10px 0}.idx{font-size:22px;font-weight:800;color:var(--cy);flex:none;width:38px}.insight h3{font-size:15.5px;margin:0 0 4px}.insight p{color:var(--muted);font-size:13.5px;margin:0}.table{overflow-x:auto;margin:14px 0}.table table{width:100%;border-collapse:collapse;font-size:13.5px}.table th,.table td{padding:9px 11px;border-bottom:1px solid rgba(42,92,126,.5);text-align:right;white-space:nowrap}.table th{color:var(--muted);font-weight:600;background:rgba(12,48,78,.6)}.table th:first-child,.table td:first-child{text-align:left}.table tr:hover td{background:rgba(67,199,231,.05)}.total td{font-weight:700;border-top:2px solid #43c7e7;color:#fff}.bad{color:var(--pk)}.good{color:var(--gr)}.foot{color:#7fa6c2;font-size:12.5px;margin-top:50px;border-top:1px solid var(--line);padding-top:16px;line-height:1.9}pre.sql{background:#081726;border:1px solid var(--line);border-radius:14px;padding:18px;overflow:auto;max-height:820px;font-size:12px;line-height:1.6;color:#bfe0f2;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;white-space:pre;tab-size:2}details{margin:14px 0}summary{cursor:pointer;color:var(--cy);font-size:14px;padding:6px 0}
+:root{--bg:#071b2f;--p:#0c2944;--line:#2a5c7e;--text:#eff8ff;--muted:#aac5da;--cy:#43c7e7;--gr:#64dcae;--am:#ffc26b;--pk:#f68ab0;--vio:#b49aff;--rd:#ff7b72}*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#06192b,#0b2c47 55%,#071a2d);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}.wrap{max-width:1450px;margin:auto;padding:32px 38px 76px}.hero{text-align:center;padding:38px 15px 28px;border-bottom:1px solid var(--line)}.kicker{color:var(--cy);font-size:14px;letter-spacing:2px;font-weight:700}.hero h1{font-size:32px;line-height:1.25;margin:10px 0}.hero p,.desc,.sub{color:var(--muted);margin:0}.hero-meta{display:inline-block;text-align:left;margin-top:14px;line-height:1.8;color:var(--muted);font-size:14px}.hero-meta .indent{padding-left:3em}h2{font-size:26px;margin:50px 0 8px}.grid{display:grid;gap:18px}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}.card,.chart,.note{background:rgba(10,41,68,.95);border:1px solid var(--line);border-radius:16px;padding:19px}.label{color:var(--muted);font-size:13px}.num{font-size:28px;font-weight:850;line-height:1.2;margin:5px 0}.cyan{color:var(--cy)}.green{color:var(--gr)}.amber{color:var(--am)}.pink{color:var(--pk)}.violet{color:var(--vio)}.red{color:var(--rd)}.chart h3{font-size:17px;margin:0 0 4px}.chart p{font-size:13px;color:var(--muted);margin:0 0 14px}.box{height:330px;position:relative}.callout{background:#0a2a45;border:1px solid #2a5c7e;border-left:4px solid #43c7e7;border-radius:12px;padding:16px 20px;margin:18px 0;line-height:1.75}.callout.red{border-left-color:#f68ab0}.callout.gold{border-left-color:#ffc26b}.callout.green{border-left-color:#64dcae}.callout .ch{font-weight:800;margin-bottom:10px;font-size:14px;color:#fff}.callout .cl{display:block;margin:8px 0}.callout .cl b{color:#43c7e7;margin-right:2px}.table{overflow-x:auto;margin:14px 0}.table table{width:100%;border-collapse:collapse;font-size:13.5px}.table th,.table td{padding:9px 11px;border-bottom:1px solid rgba(42,92,126,.5);text-align:right;white-space:nowrap}.table th{color:var(--muted);font-weight:600;background:rgba(12,48,78,.6)}.table th:first-child,.table td:first-child{text-align:left}.table tr:hover td{background:rgba(67,199,231,.05)}.total td{font-weight:700;border-top:2px solid #43c7e7;color:#fff}.bad{color:var(--pk)}.good{color:var(--gr)}.foot{color:#7fa6c2;font-size:12.5px;margin-top:50px;border-top:1px solid var(--line);padding-top:16px;line-height:1.9}pre.sql{background:#081726;border:1px solid var(--line);border-radius:14px;padding:18px;overflow:auto;max-height:820px;font-size:12px;line-height:1.6;color:#bfe0f2;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;white-space:pre;tab-size:2}details{margin:14px 0}summary{cursor:pointer;color:var(--cy);font-size:14px;padding:6px 0}
 </style></head><body><main class="wrap">
 
 <header class="hero">
 <div class="kicker">T7 新策略召回 · 效果评估</div>
 <h1>召回结果分析报告</h1>
 <div class="hero-meta">
-<div>对象：t7recall_active0910（模型筛选的高提单意向用户）</div>
+<div>对象：t7recall_active0910（模型提取的高提单意向子集）</div>
 <div class="indent">对照：t7recalllist_0902、t7recalllist_0818_0819（完整名单）</div>
 <div class="indent">活跃口径：0902组=9/2~9/9活跃；0818组=8/18~9/9活跃，否则非活跃</div>
 <div class="indent">提单口径：首次提单落在 9/10~9/13　·　统计截止：2026-09-13</div>
@@ -16,84 +16,86 @@
 </header>
 
 <h2>核心结论</h2>
-<p class="desc">本次模型与新策略的核心价值：<b>不再只触达活跃用户，而是同时从「活跃用户」中筛掉低意向、从「非活跃用户」中挖出高意向，用更少的触达覆盖尽可能多的提单意愿用户，从而降低营销成本。</b></p>
 <section class="grid g4" style="margin-top:18px">
-<article class="card"><div class="label">非活跃用户提单贡献</div><div class="num pink">45.3%</div><div class="sub">316 名提单中 143 人来自非活跃用户</div></article>
-<article class="card"><div class="label">活跃用户筛选</div><div class="num green">91.8%</div><div class="sub">0818 筛掉 66% 活跃用户仍覆盖 91.8% 活跃提单</div></article>
-<article class="card"><div class="label">非活跃用户筛选</div><div class="num amber">73.6%</div><div class="sub">0818 筛掉 69% 非活跃用户覆盖 73.6% 非活跃提单</div></article>
-<article class="card"><div class="label">营销成本下降</div><div class="num violet">-68%</div><div class="sub">0818 触达人数 16,913 → 5,365，覆盖 83.2% 提单</div></article>
+<article class="card"><div class="label">0818 提单覆盖率</div><div class="num green">83.2%</div><div class="sub">用 31.7% 用户覆盖 83.2% 提单</div></article>
+<article class="card"><div class="label">0902 提单覆盖率</div><div class="num cyan">99.2%</div><div class="sub">用 82.6% 用户覆盖 99.2% 提单</div></article>
+<article class="card"><div class="label">0818 提单率提升</div><div class="num amber">2.6 倍</div><div class="sub">1.09% → 2.87%</div></article>
+<article class="card"><div class="label">模型价值</div><div class="num violet">0818 显著</div><div class="sub">0902 名单小且新鲜，价值有限</div></article>
 </section>
-<div class="callout"><div class="ch">核心价值</div>
-<span class="cl"><b>价值一（筛活跃）：</b>对活跃用户做过滤，剔除提单意向低的活跃用户，同时尽可能覆盖能提单的活跃用户——0818 名单筛掉 66% 活跃用户（3,400→1,152），仍覆盖 91.8% 的活跃提单。</span>
-<span class="cl"><b>价值二（挖非活跃）：</b>非活跃用户群体庞大（占 77.8%），模型从中筛选提单意向高的非活跃用户，用较少的触达覆盖尽可能多的有提单意愿的非活跃用户——0818 名单筛掉 69% 非活跃用户（13,513→4,213），覆盖 73.6% 的非活跃提单。</span>
-<span class="cl"><b>综合收益：</b>两者叠加，0818 名单触达人数从 16,913 降至 5,365（-68%），仍覆盖 83.2% 的首次提单，营销成本大幅下降。</span>
+<div class="callout"><div class="ch">核心判断</div>
+<span class="cl"><b>① 模型对大批量长周期名单价值显著：</b>0818 名单（16,913 人）中，模型只用 31.7% 的用户（5,365 人）就覆盖了 83.2% 的首次提单，触达成本降 68%，提单率从 1.09% 提升到 2.87%（2.6 倍）。</span>
+<span class="cl"><b>② 模型对小批量新鲜名单价值有限：</b>0902 名单（2,939 人）几乎被全选（82.6%），提单率仅从 4.46% 提升到 5.36%，筛选空间小。</span>
+<span class="cl"><b>③ 活跃用户是提单主力：</b>完整名单中活跃用户提单率（0902 7.4%、0818 2.9%）远高于非活跃（2.9%、0.6%），模型优先圈选活跃用户是正确的。</span>
+<span class="cl"><b>④ 模型漏掉的用户提单率极低：</b>漏掉的 12,060 人提单率不足 0.3%，证明筛选精准、几乎无漏掉高意向用户。</span>
 </div>
 
-<h2>一、背景：旧策略的问题</h2>
-<p class="desc">旧策略只对「新增活跃用户」再次触达，但活跃用户转化来的提单只占新增提单的约一半，非活跃用户被完全忽略，漏掉了巨大的挖掘价值。</p>
+<h2>一、名单结构与活跃/非活跃分布</h2>
+<p class="desc">完整名单 vs active 子集的用户规模，及活跃/非活跃构成。</p>
 <div class="table"><table>
-<caption>完整名单首次提单（9/10~9/13）按活跃/非活跃拆分</caption>
-<thead><tr><th>src</th><th>首次提单总数</th><th>活跃提单</th><th>活跃占比</th><th>非活跃提单</th><th>非活跃占比</th></tr></thead>
+<caption>完整名单与 active 子集结构</caption>
+<thead><tr><th>src</th><th>完整名单</th><th>完整活跃</th><th>完整非活跃</th><th>子集用户</th><th>子集活跃</th><th>子集非活跃</th><th>子集占比</th></tr></thead>
 <tbody>
-<tr><td>0902</td><td>131</td><td>75</td><td>57.3%</td><td>56</td><td class="bad">42.7%</td></tr>
-<tr><td>0818_0819</td><td>185</td><td>98</td><td>53.0%</td><td>87</td><td class="bad">47.0%</td></tr>
-<tr class="total"><td>合计</td><td>316</td><td>173</td><td>54.7%</td><td>143</td><td class="bad">45.3%</td></tr>
+<tr><td>0902</td><td>2,939</td><td>1,016 (34.6%)</td><td>1,923 (65.4%)</td><td>2,427</td><td>526</td><td>1,901</td><td>82.6%</td></tr>
+<tr><td>0818_0819</td><td>16,913</td><td>3,400 (20.1%)</td><td>13,513 (79.9%)</td><td>5,365</td><td>1,152</td><td>4,213</td><td>31.7%</td></tr>
+<tr class="total"><td>合计</td><td>19,852</td><td>4,416 (22.2%)</td><td>15,436 (77.8%)</td><td>7,792</td><td>1,678</td><td>6,114</td><td>39.3%</td></tr>
 </tbody>
 </table></div>
 <section class="grid g2">
-<article class="chart"><h3>首次提单：活跃 vs 非活跃构成</h3><p>非活跃用户贡献 45.3% 提单，接近一半，价值不可忽视。</p><div class="box"><canvas id="c1"></canvas></div></article>
-<article class="chart"><h3>活跃 vs 非活跃提单率</h3><p>活跃提单率高，但非活跃用户基数大，绝对贡献同样可观。</p><div class="box"><canvas id="c2"></canvas></div></article>
+<article class="chart"><h3>完整名单 vs active 子集用户数</h3><p>0818 名单被模型压缩到 31.7%，0902 名单几乎全保留。</p><div class="box"><canvas id="c1"></canvas></div></article>
+<article class="chart"><h3>活跃/非活跃构成（占比）</h3><p>活跃用户仅占完整名单 22.2%，但被模型优先圈选。</p><div class="box"><canvas id="c2"></canvas></div></article>
 </section>
-<div class="callout red"><div class="ch">旧策略的缺陷</div>
-<span class="cl"><b>① 只触达活跃用户，漏掉 45.3% 提单：</b>316 名新增提单用户中，143 人（45.3%）来自非活跃用户，旧策略完全放弃这批用户。</span>
-<span class="cl"><b>② 活跃用户中也有低意向：</b>活跃用户提单率仅 2.88%~7.38%，并非全部值得触达，旧策略全量触达活跃用户造成浪费。</span>
-<span class="cl"><b>③ 非活跃用户基数大：</b>占名单 77.8%（15,436 人），其中蕴含大量「提单前不活跃、但会提单」的潜在用户。</span>
-</div>
 
-<h2>二、模型与新策略：双向筛选</h2>
-<p class="desc">新策略不再「只触达活跃」，而是：① 对活跃用户过滤，剔除低意向；② 从非活跃用户中筛选高意向。两者叠加，用更少触达覆盖更多提单意愿。</p>
+<h2>二、首次提单情况（9/10~9/13）</h2>
 <div class="table"><table>
-<caption>模型双向筛选效果（完整名单 → active 子集）</caption>
-<thead><tr><th>src</th><th>类型</th><th>完整人数</th><th>子集人数</th><th>筛选比例</th><th>完整提单</th><th>子集提单</th><th>提单覆盖</th></tr></thead>
+<caption>完整名单首次提单</caption>
+<thead><tr><th>src</th><th>首次提单总数</th><th>提单率</th><th>活跃提单</th><th>活跃提单率</th><th>非活跃提单</th><th>非活跃提单率</th></tr></thead>
 <tbody>
-<tr><td>0902</td><td>活跃</td><td>1,016</td><td>526</td><td>51.8%</td><td>75</td><td>75</td><td class="good">100%</td></tr>
-<tr><td>0902</td><td>非活跃</td><td>1,923</td><td>1,901</td><td>98.9%</td><td>56</td><td>55</td><td class="good">98.2%</td></tr>
-<tr><td>0818</td><td>活跃</td><td>3,400</td><td>1,152</td><td>33.9%</td><td>98</td><td>90</td><td class="good">91.8%</td></tr>
-<tr><td>0818</td><td>非活跃</td><td>13,513</td><td>4,213</td><td>31.2%</td><td>87</td><td>64</td><td>73.6%</td></tr>
+<tr><td>0902</td><td>131</td><td>4.46%</td><td>75 (57.3%)</td><td>75/1016 = 7.38%</td><td>56 (42.7%)</td><td>56/1923 = 2.91%</td></tr>
+<tr><td>0818_0819</td><td>185</td><td>1.09%</td><td>98 (53.0%)</td><td>98/3400 = 2.88%</td><td>87 (47.0%)</td><td>87/13513 = 0.64%</td></tr>
 </tbody>
 </table></div>
 <section class="grid g2">
-<article class="chart"><h3>双向筛选：用户数（筛前 vs 筛后）</h3><p>0818 活跃筛掉 66%、非活跃筛掉 69%，触达大幅缩减。</p><div class="box"><canvas id="c3"></canvas></div></article>
-<article class="chart"><h3>提单覆盖（活跃/非活跃/总）</h3><p>活跃提单覆盖 91.8%~100%，非活跃 73.6%~98.2%。</p><div class="box"><canvas id="c4"></canvas></div></article>
+<article class="chart"><h3>首次提单率对比（完整 vs 子集）</h3><p>子集提单率显著高于完整名单，0818 提升 2.6 倍。</p><div class="box"><canvas id="c3"></canvas></div></article>
+<article class="chart"><h3>活跃 vs 非活跃提单率</h3><p>活跃用户提单率显著高于非活跃（0818 差 4.5 倍）。</p><div class="box"><canvas id="c4"></canvas></div></article>
 </section>
+
+<h2>三、active 子集覆盖分析</h2>
+<div class="table"><table>
+<caption>active 子集对完整名单的覆盖</caption>
+<thead><tr><th>src</th><th>活跃覆盖率</th><th>非活跃覆盖率</th><th>提单覆盖率</th></tr></thead>
+<tbody>
+<tr><td>0902</td><td>526/1016 = <b>51.8%</b></td><td>1901/1923 = 98.9%</td><td class="good">130/131 = 99.2%</td></tr>
+<tr><td>0818_0819</td><td>1152/3400 = <b>33.9%</b></td><td>4213/13513 = 31.2%</td><td class="good">154/185 = 83.2%</td></tr>
+</tbody>
+</table></div>
 <section class="grid g2">
-<article class="chart"><h3>营销成本 vs 提单覆盖（0818）</h3><p>触达人数 -68%，提单覆盖仍达 83.2%。</p><div class="box"><canvas id="c5"></canvas></div></article>
-<article class="chart"><h3>营销成本 vs 提单覆盖（0902）</h3><p>小名单几乎全选，压缩空间有限。</p><div class="box"><canvas id="c6"></canvas></div></article>
+<article class="chart"><h3>覆盖指标（活跃/非活跃/提单）</h3><p>提单覆盖率远高于用户覆盖率，模型精准圈住提单用户。</p><div class="box"><canvas id="c5"></canvas></div></article>
+<article class="chart"><h3>提单覆盖 vs 用户占比</h3><p>0818 用 31.7% 用户覆盖 83.2% 提单，投入产出比极高。</p><div class="box"><canvas id="c6"></canvas></div></article>
 </section>
 
-<h2>三、模型与新策略的核心价值总结</h2>
+<h2>四、模型准确度与价值评估</h2>
 <section class="note">
-<div class="insight"><div class="idx">01</div><div><h3>价值一：筛选活跃用户，覆盖能提单的用户。</h3><p>活跃用户提单率 2.88%~7.38%，并非全部高意向。模型筛掉低意向活跃用户（0818 筛掉 66%），仍覆盖 91.8% 的活跃提单，精准命中「活跃且会提单」的用户。</p></div></div>
-<div class="insight"><div class="idx">02</div><div><h3>价值二：筛选非活跃用户，挖掘被忽略的潜力。</h3><p>非活跃用户占名单 77.8%，贡献 45.3% 提单。模型从 13,513 个非活跃用户中筛出 4,213 人（31.2%），覆盖 73.6% 的非活跃提单，用较少触达抓住了非活跃用户中的高意向者。</p></div></div>
-<div class="insight"><div class="idx">03</div><div><h3>价值三：减少营销成本。</h3><p>0818 名单触达人数从 16,913 降至 5,365（-68%），仍覆盖 83.2% 的首次提单，营销成本大幅下降，ROI 显著提升。</p></div></div>
+<div class="insight"><div class="idx">01</div><div><h3>分类准确性：活跃用户优先圈选是正确策略。</h3><p>活跃用户提单率（0902 7.38%、0818 2.88%）远高于非活跃（2.91%、0.64%），模型将活跃用户作为主要圈选对象，方向正确。</p></div></div>
+<div class="insight"><div class="idx">02</div><div><h3>提单覆盖程度：以少量用户覆盖绝大部分提单。</h3><p>0818 名单仅用 31.7% 用户覆盖 83.2% 提单；0902 名单用 82.6% 用户覆盖 99.2% 提单。模型对「大规模长周期」名单的压缩能力极强。</p></div></div>
+<div class="insight"><div class="idx">03</div><div><h3>漏损可控：漏掉用户提单率不足 0.3%。</h3><p>模型漏掉的 12,060 人（活跃 2,738 + 非活跃 9,322）首次提单率仅 0.26%~0.29%，证明筛选几乎没有误伤高意向用户。</p></div></div>
+<div class="insight"><div class="idx">04</div><div><h3>使用价值：对大名单 ROI 显著，小名单有限。</h3><p>0818 名单触达成本降 68%、提单率提升 2.6 倍，价值显著；0902 名单本身小且新鲜（召回仅 11 天），几乎需全选，模型压缩空间有限。</p></div></div>
 </section>
-
-<h2>四、模型与策略存在的问题及优化方向</h2>
-<section class="note">
-<div class="insight"><div class="idx">01</div><div><h3>问题：非活跃用户提单覆盖不足。</h3><p>0818 名单非活跃提单覆盖仅 73.6%，漏掉 23 人（26.4%）——非活跃用户提单前缺乏活跃信号，模型对其识别能力有限，是当前最大的漏损点。</p></div></div>
-<div class="insight"><div class="idx">02</div><div><h3>问题：小名单筛选区分度不足。</h3><p>0902 名单几乎被全选（82.6%），活跃用户也仅筛掉 48%，模型对小而新鲜的名单几乎不起压缩作用，价值有限。</p></div></div>
-<div class="insight"><div class="idx">03</div><div><h3>问题：活跃用户仍有漏损。</h3><p>0818 活跃提单 98 人中有 8 人（8.2%）未被模型选中，说明「活跃但会提单」的边界用户仍存在误判。</p></div></div>
-<div class="insight"><div class="idx">04</div><div><h3>优化方向：</h3><p>① 为非活跃用户引入专属特征（历史活跃间隔、获额意向、券敏感度、历史提单频率），提升非活跃提单覆盖；② 升级模型（GBDT/XGBoost）提升区分度；③ 分名单定制阈值——大名单用严格阈值放大压缩收益，小名单放宽阈值保覆盖；④ 对活跃/非活跃分别建模，而非一刀切，以兼顾「筛活跃」和「挖非活跃」两个目标。</p></div></div>
-</section>
+<div class="callout green"><div class="ch">综合结论</div>
+<span class="cl"><b>模型价值 = 压缩触达人群 × 保持提单覆盖：</b>核心价值体现在「用更少的触达人数，覆盖尽可能多的提单」。</span>
+<span class="cl"><b>0818 名单（价值高）：</b>16,913 → 5,365 人（-68%），提单率 1.09% → 2.87%（+2.6 倍），覆盖 83.2% 提单。</span>
+<span class="cl"><b>0902 名单（价值低）：</b>2,939 → 2,427 人（-17%），提单率 4.46% → 5.36%（+20%），覆盖 99.2% 提单。</span>
+<span class="cl"><b>建议：</b>模型应优先应用于「大规模、召回时间较久」的名单以最大化 ROI；对新鲜小名单，可直接全量触达，不必套用模型筛选。</span>
+</div>
 
 <h2>附录：完整 PGsql 代码</h2>
-<p class="desc">以下 SQL 可复现报告所有指标（名单结构、首次提单、双向筛选、提单覆盖）。</p>
+<p class="desc">以下 SQL 可复现报告所有指标（名单结构、首次提单、子集覆盖、覆盖率）。</p>
 <details open><summary>展开/收起完整 SQL</summary>
 <pre class="sql">-- ============================================================================
 -- 召回触达模型效果评估 —— 完整复现 SQL
 -- 数据源：kaby_dw（wangchuanliang schema），统计截止 2026-09-13（America/Belize）
 -- 活跃口径：0902组=9/2~9/9活跃；0818_0819组=8/18~9/9活跃，否则非活跃
 -- 提单口径：首次提单（召回后最小apply_date）落在 9/10~9/13
+-- 召回阈值：0902=9/2后；0818_0819=8/18后
 -- ============================================================================
 
 -- 【块1】完整名单结构：活跃/非活跃用户数（按 src）
@@ -102,26 +104,20 @@ WITH active AS (
         MAX(CASE WHEN e.active_date BETWEEN DATE &#x27;2026-09-02&#x27; AND DATE &#x27;2026-09-09&#x27; THEN 1 ELSE 0 END) AS act_0902,
         MAX(CASE WHEN e.active_date BETWEEN DATE &#x27;2026-08-18&#x27; AND DATE &#x27;2026-09-09&#x27; THEN 1 ELSE 0 END) AS act_0818
     FROM wangchuanliang.event_track e
-    WHERE e.active_date BETWEEN DATE &#x27;2026-08-18&#x27; AND DATE &#x27;2026-09-09&#x27; GROUP BY e.user_id
-),
-recall AS (
+    WHERE e.active_date BETWEEN DATE &#x27;2026-08-18&#x27; AND DATE &#x27;2026-09-09&#x27;
+    GROUP BY e.user_id
+)
+SELECT src, COUNT(*) AS 总用户,
+    SUM(CASE WHEN (src=&#x27;0902&#x27; AND COALESCE(act_0902,0)=1) OR (src=&#x27;0818_0819&#x27; AND COALESCE(act_0818,0)=1) THEN 1 ELSE 0 END) AS 活跃,
+    SUM(CASE WHEN (src=&#x27;0902&#x27; AND COALESCE(act_0902,0)=0) OR (src=&#x27;0818_0819&#x27; AND COALESCE(act_0818,0)=0) THEN 1 ELSE 0 END) AS 非活跃
+FROM (
     SELECT &#x27;0902&#x27; AS src, churn_user_id::bigint AS uid FROM wangchuanliang.t7recalllist_0902
     UNION ALL SELECT &#x27;0818_0819&#x27;, churn_user_id::bigint FROM wangchuanliang.t7recalllist_0818_0819
-)
-SELECT r.src, COUNT(*) AS 总用户,
-    SUM(CASE WHEN (r.src=&#x27;0902&#x27; AND COALESCE(a.act_0902,0)=1) OR (r.src=&#x27;0818_0819&#x27; AND COALESCE(a.act_0818,0)=1) THEN 1 ELSE 0 END) AS 活跃,
-    SUM(CASE WHEN (r.src=&#x27;0902&#x27; AND COALESCE(a.act_0902,0)=0) OR (r.src=&#x27;0818_0819&#x27; AND COALESCE(a.act_0818,0)=0) THEN 1 ELSE 0 END) AS 非活跃
-FROM recall r LEFT JOIN active a ON a.user_id = r.uid GROUP BY r.src;
+) r LEFT JOIN active a ON a.user_id = r.uid
+GROUP BY src;
 
 -- 【块2】完整名单首次提单 9/10~9/13：按 src × 活跃/非活跃
-WITH active AS (
-    SELECT e.user_id,
-        MAX(CASE WHEN e.active_date BETWEEN DATE &#x27;2026-09-02&#x27; AND DATE &#x27;2026-09-09&#x27; THEN 1 ELSE 0 END) AS act_0902,
-        MAX(CASE WHEN e.active_date BETWEEN DATE &#x27;2026-08-18&#x27; AND DATE &#x27;2026-09-09&#x27; THEN 1 ELSE 0 END) AS act_0818
-    FROM wangchuanliang.event_track e
-    WHERE e.active_date BETWEEN DATE &#x27;2026-08-18&#x27; AND DATE &#x27;2026-09-09&#x27; GROUP BY e.user_id
-),
-first_apply AS (
+WITH first_apply AS (
     SELECT o.user_id, MIN(o.apply_date) AS first_date
     FROM wangchuanliang.order_loan_f_v2_copy o
     JOIN wangchuanliang.t7recalllist_0902 t ON o.user_id = t.churn_user_id::int
@@ -131,6 +127,13 @@ first_apply AS (
     FROM wangchuanliang.order_loan_f_v2_copy o
     JOIN wangchuanliang.t7recalllist_0818_0819 t ON o.user_id = t.churn_user_id
     WHERE o.apply_date &gt;= DATE &#x27;2026-08-18&#x27; GROUP BY o.user_id
+),
+active AS (
+    SELECT e.user_id,
+        MAX(CASE WHEN e.active_date BETWEEN DATE &#x27;2026-09-02&#x27; AND DATE &#x27;2026-09-09&#x27; THEN 1 ELSE 0 END) AS act_0902,
+        MAX(CASE WHEN e.active_date BETWEEN DATE &#x27;2026-08-18&#x27; AND DATE &#x27;2026-09-09&#x27; THEN 1 ELSE 0 END) AS act_0818
+    FROM wangchuanliang.event_track e
+    WHERE e.active_date BETWEEN DATE &#x27;2026-08-18&#x27; AND DATE &#x27;2026-09-09&#x27; GROUP BY e.user_id
 ),
 recall AS (
     SELECT &#x27;0902&#x27; AS src, churn_user_id::bigint AS uid FROM wangchuanliang.t7recalllist_0902
@@ -142,41 +145,48 @@ SELECT r.src,
              AND ((r.src=&#x27;0902&#x27; AND COALESCE(a.act_0902,0)=1) OR (r.src=&#x27;0818_0819&#x27; AND COALESCE(a.act_0818,0)=1)) THEN 1 ELSE 0 END) AS 活跃提单,
     SUM(CASE WHEN fa.first_date BETWEEN DATE &#x27;2026-09-10&#x27; AND DATE &#x27;2026-09-13&#x27;
              AND ((r.src=&#x27;0902&#x27; AND COALESCE(a.act_0902,0)=0) OR (r.src=&#x27;0818_0819&#x27; AND COALESCE(a.act_0818,0)=0)) THEN 1 ELSE 0 END) AS 非活跃提单
-FROM recall r LEFT JOIN active a ON a.user_id=r.uid LEFT JOIN first_apply fa ON fa.user_id=r.uid
+FROM recall r
+LEFT JOIN active a ON a.user_id = r.uid
+LEFT JOIN first_apply fa ON fa.user_id = r.uid
 GROUP BY r.src;
 
 -- 【块3】active 子集（t7recall_active0910）结构与提单：按 src × 活跃/非活跃
-WITH active AS (
+WITH applied AS (
+    SELECT DISTINCT o.user_id
+    FROM wangchuanliang.order_loan_f_v2_copy o
+    JOIN wangchuanliang.t7recall_active0910 t ON o.user_id = t.churn_user_id::int
+    WHERE o.apply_date BETWEEN DATE &#x27;2026-09-10&#x27; AND DATE &#x27;2026-09-13&#x27;
+),
+active AS (
     SELECT e.user_id,
         MAX(CASE WHEN e.active_date BETWEEN DATE &#x27;2026-09-02&#x27; AND DATE &#x27;2026-09-09&#x27; THEN 1 ELSE 0 END) AS act_0902,
         MAX(CASE WHEN e.active_date BETWEEN DATE &#x27;2026-08-18&#x27; AND DATE &#x27;2026-09-09&#x27; THEN 1 ELSE 0 END) AS act_0818
     FROM wangchuanliang.event_track e
     WHERE e.active_date BETWEEN DATE &#x27;2026-08-18&#x27; AND DATE &#x27;2026-09-09&#x27; GROUP BY e.user_id
-),
-applied AS (
-    SELECT DISTINCT o.user_id
-    FROM wangchuanliang.order_loan_f_v2_copy o
-    JOIN wangchuanliang.t7recall_active0910 t ON o.user_id = t.churn_user_id::int
-    WHERE o.apply_date BETWEEN DATE &#x27;2026-09-10&#x27; AND DATE &#x27;2026-09-13&#x27;
 )
 SELECT t.src, COUNT(*) AS 子集用户,
     SUM(CASE WHEN (t.src=&#x27;0902&#x27; AND COALESCE(ac.act_0902,0)=1) OR (t.src=&#x27;0818_0819&#x27; AND COALESCE(ac.act_0818,0)=1) THEN 1 ELSE 0 END) AS 子集活跃,
     SUM(CASE WHEN (t.src=&#x27;0902&#x27; AND COALESCE(ac.act_0902,0)=0) OR (t.src=&#x27;0818_0819&#x27; AND COALESCE(ac.act_0818,0)=0) THEN 1 ELSE 0 END) AS 子集非活跃,
-    COUNT(a.user_id) AS 子集提单,
-    SUM(CASE WHEN a.user_id IS NOT NULL AND ((t.src=&#x27;0902&#x27; AND COALESCE(ac.act_0902,0)=1) OR (t.src=&#x27;0818_0819&#x27; AND COALESCE(ac.act_0818,0)=1)) THEN 1 ELSE 0 END) AS 子集活跃提单,
-    SUM(CASE WHEN a.user_id IS NOT NULL AND ((t.src=&#x27;0902&#x27; AND COALESCE(ac.act_0902,0)=0) OR (t.src=&#x27;0818_0819&#x27; AND COALESCE(ac.act_0818,0)=0)) THEN 1 ELSE 0 END) AS 子集非活跃提单
+    COUNT(a.user_id) AS 子集提单
 FROM wangchuanliang.t7recall_active0910 t
 LEFT JOIN active ac ON ac.user_id = t.churn_user_id::int
 LEFT JOIN applied a ON a.user_id = t.churn_user_id::int
 GROUP BY t.src;
+
+-- 【块4】覆盖计算：active 子集对完整名单活跃/非活跃的覆盖率，及提单覆盖率
+-- （由块1、块2、块3 结果相除得出：
+--   活跃覆盖率 = 子集活跃 / 完整名单活跃
+--   非活跃覆盖率 = 子集非活跃 / 完整名单非活跃
+--   提单覆盖率 = 子集提单 / 完整名单首次提单）
 </pre>
 </details>
 
 <p class="foot"><b>口径说明</b><br>
-<b>名单</b>：t7recalllist_0902（9/2 召回 2,939 人）、t7recalllist_0818_0819（8/18 召回 16,913 人）；t7recall_active0910 为模型筛选的高提单意向子集<br>
+<b>名单</b>：t7recalllist_0902（9/2 召回 2,939 人）、t7recalllist_0818_0819（8/18 召回 16,913 人）；t7recall_active0910 为模型提取的高提单意向子集<br>
 <b>活跃</b>：0902 组=9/2~9/9 有活跃；0818 组=8/18~9/9 有活跃，否则非活跃（event_track.active_date）<br>
 <b>首次提单</b>：召回后最小 apply_date 落在 9/10~9/13<br>
-<b>提单率</b>：首次提单用户数 / 用户总数；<b>提单覆盖</b>：子集提单数 / 完整名单提单数<br>
+<b>提单率</b>：首次提单用户数 / 用户总数<br>
+<b>覆盖率</b>：子集内某类用户数 / 完整名单同类用户数<br>
 <b>数据源</b>：wangchuanliang 各表（kaby_dw，截止 2026-09-13）</p>
 </main>
 <script>/**
@@ -206,10 +216,10 @@ var gridC='rgba(80,142,176,.16)';
 function base(){return {responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:12,padding:15}}},scales:{x:{grid:{color:gridC}},y:{grid:{color:gridC},beginAtZero:true}}};}
 function dayOpts(){var o=base();o.plugins.tooltip={callbacks:{label:function(c){return c.dataset.label+': '+c.parsed.y;}}};return o;}
 function pctOpts(max){var o=base();o.plugins.tooltip={callbacks:{label:function(c){return c.dataset.label+': '+c.parsed.y+'%';}}};o.scales.y.max=max;o.scales.y.ticks={callback:function(v){return v+'%';}};return o;}
-new Chart(document.getElementById('c1'),{type:'bar',data:{labels:['0902','0818_0819','合计'],datasets:[{label:'活跃提单',data:[75,98,173],backgroundColor:'#64dcae',borderRadius:3},{label:'非活跃提单',data:[56,87,143],backgroundColor:'#f68ab0',borderRadius:3}]},options:(function(){var o=dayOpts();o.scales.x.stacked=true;o.scales.y.stacked=true;return o;})()});
-new Chart(document.getElementById('c2'),{type:'bar',data:{labels:['0902','0818_0819'],datasets:[{label:'活跃提单率 %',data:[7.38,2.88],backgroundColor:'#64dcae',borderRadius:3},{label:'非活跃提单率 %',data:[2.91,0.64],backgroundColor:'#f68ab0',borderRadius:3}]},options:pctOpts(8)});
-new Chart(document.getElementById('c3'),{type:'bar',data:{labels:['0902活跃','0902非活跃','0818活跃','0818非活跃'],datasets:[{label:'完整名单',data:[1016,1923,3400,13513],backgroundColor:'#43c7e7',borderRadius:3},{label:'模型子集',data:[526,1901,1152,4213],backgroundColor:'#64dcae',borderRadius:3}]},options:dayOpts()});
-new Chart(document.getElementById('c4'),{type:'bar',data:{labels:['0902','0818_0819'],datasets:[{label:'活跃提单覆盖 %',data:[100,91.8],backgroundColor:'#64dcae',borderRadius:3},{label:'非活跃提单覆盖 %',data:[98.2,73.6],backgroundColor:'#ffc26b',borderRadius:3},{label:'总提单覆盖 %',data:[99.2,83.2],backgroundColor:'#43c7e7',borderRadius:3}]},options:pctOpts(110)});
-new Chart(document.getElementById('c5'),{type:'bar',data:{labels:['触达人数','提单覆盖'],datasets:[{label:'全量触达',data:[100,100],backgroundColor:'#43c7e7',borderRadius:3},{label:'模型触达',data:[31.7,83.2],backgroundColor:'#64dcae',borderRadius:3}]},options:pctOpts(110)});
-new Chart(document.getElementById('c6'),{type:'bar',data:{labels:['触达人数','提单覆盖'],datasets:[{label:'全量触达',data:[100,100],backgroundColor:'#43c7e7',borderRadius:3},{label:'模型触达',data:[82.6,99.2],backgroundColor:'#64dcae',borderRadius:3}]},options:pctOpts(110)});
+new Chart(document.getElementById('c1'),{type:'bar',data:{labels:['0902','0818_0819'],datasets:[{label:'完整名单',data:[2939,16913],backgroundColor:'#43c7e7',borderRadius:3},{label:'active子集',data:[2427,5365],backgroundColor:'#64dcae',borderRadius:3}]},options:dayOpts()});
+new Chart(document.getElementById('c2'),{type:'bar',data:{labels:['0902','0818_0819','合计'],datasets:[{label:'活跃占比 %',data:[34.6,20.1,22.2],backgroundColor:'#64dcae',borderRadius:3},{label:'非活跃占比 %',data:[65.4,79.9,77.8],backgroundColor:'#f68ab0',borderRadius:3}]},options:(function(){var o=pctOpts(100);o.scales.x.stacked=true;o.scales.y.stacked=true;return o;})()});
+new Chart(document.getElementById('c3'),{type:'bar',data:{labels:['0902','0818_0819'],datasets:[{label:'完整名单提单率 %',data:[4.46,1.09],backgroundColor:'#43c7e7',borderRadius:3},{label:'active子集提单率 %',data:[5.36,2.87],backgroundColor:'#64dcae',borderRadius:3}]},options:pctOpts(6)});
+new Chart(document.getElementById('c4'),{type:'bar',data:{labels:['0902','0818_0819'],datasets:[{label:'活跃提单率 %',data:[7.38,2.88],backgroundColor:'#64dcae',borderRadius:3},{label:'非活跃提单率 %',data:[2.91,0.64],backgroundColor:'#f68ab0',borderRadius:3}]},options:pctOpts(8)});
+new Chart(document.getElementById('c5'),{type:'bar',data:{labels:['0902','0818_0819'],datasets:[{label:'活跃覆盖率 %',data:[51.8,33.9],backgroundColor:'#43c7e7',borderRadius:3},{label:'非活跃覆盖率 %',data:[98.9,31.2],backgroundColor:'#f68ab0',borderRadius:3},{label:'提单覆盖率 %',data:[99.2,83.2],backgroundColor:'#64dcae',borderRadius:3}]},options:pctOpts(110)});
+new Chart(document.getElementById('c6'),{type:'bar',data:{labels:['0902','0818_0819'],datasets:[{label:'用户占比 %',data:[82.6,31.7],backgroundColor:'#43c7e7',borderRadius:3},{label:'提单覆盖率 %',data:[99.2,83.2],backgroundColor:'#64dcae',borderRadius:3}]},options:pctOpts(110)});
 </script></body></html>
