@@ -1,89 +1,143 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>召回提单意愿模型V1问题诊断与优化方案</title>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>召回提单意愿模型V2优化分析报告</title>
 <style>
-:root{--bg:#071b2f;--p:#0c2944;--line:#2a5c7e;--text:#eff8ff;--muted:#aac5da;--cy:#43c7e7;--gr:#64dcae;--am:#ffc26b;--pk:#f68ab0;--vio:#b49aff;--rd:#ff7b72}*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#06192b,#0b2c47 55%,#071a2d);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}.wrap{max-width:1450px;margin:auto;padding:32px 38px 76px}.hero{text-align:center;padding:38px 15px 28px;border-bottom:1px solid var(--line)}.kicker{color:var(--cy);font-size:14px;letter-spacing:2px;font-weight:700}.hero h1{font-size:32px;line-height:1.25;margin:10px 0}.hero p,.desc,.sub{color:var(--muted);margin:0}.hero-meta{display:inline-block;text-align:left;margin-top:14px;line-height:1.8;color:var(--muted);font-size:14px}.hero-meta .indent{padding-left:3em}h2{font-size:26px;margin:50px 0 8px}.grid{display:grid;gap:18px}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}.card,.chart,.note{background:rgba(10,41,68,.95);border:1px solid var(--line);border-radius:16px;padding:19px}.label{color:var(--muted);font-size:13px}.num{font-size:28px;font-weight:850;line-height:1.2;margin:5px 0}.cyan{color:var(--cy)}.green{color:var(--gr)}.amber{color:var(--am)}.pink{color:var(--pk)}.violet{color:var(--vio)}.red{color:var(--rd)}.chart h3{font-size:17px;margin:0 0 4px}.chart p{font-size:13px;color:var(--muted);margin:0 0 14px}.box{height:320px;position:relative}.callout{background:#0a2a45;border:1px solid #2a5c7e;border-left:4px solid #43c7e7;border-radius:12px;padding:16px 20px;margin:18px 0;line-height:1.75}.callout.red{border-left-color:#f68ab0}.callout.gold{border-left-color:#ffc26b}.callout.green{border-left-color:#64dcae}.callout .ch{font-weight:800;margin-bottom:10px;font-size:14px;color:#fff}.callout .cl{display:block;margin:8px 0}.callout .cl b{color:#43c7e7;margin-right:2px}.insight{display:flex;gap:14px;padding:15px;border:1px solid var(--line);border-radius:12px;background:#0a2a45;margin:10px 0}.idx{font-size:22px;font-weight:800;color:var(--cy);flex:none;width:38px}.insight h3{font-size:15.5px;margin:0 0 4px}.insight p{color:var(--muted);font-size:13.5px;margin:0}.table{overflow-x:auto;margin:14px 0}.table caption.problem-title{font-size:21px;font-weight:900;color:#ff7b72;text-align:left;margin-bottom:14px;caption-side:top;padding:12px 16px;background:rgba(255,123,114,.12);border-left:5px solid #ff7b72;border-radius:8px}.table table{width:100%;border-collapse:collapse;font-size:13.5px}.table th,.table td{padding:9px 11px;border-bottom:1px solid rgba(42,92,126,.5);text-align:right;white-space:nowrap}.table th{color:var(--muted);font-weight:600;background:rgba(12,48,78,.6)}.table th:first-child,.table td:first-child{text-align:left}.table tr:hover td{background:rgba(67,199,231,.05)}.total td{font-weight:700;border-top:2px solid #43c7e7;color:#fff}.bad{color:var(--pk)}.good{color:var(--gr)}.foot{color:#7fa6c2;font-size:12.5px;margin-top:50px;border-top:1px solid var(--line);padding-top:16px;line-height:1.9}pre.code{background:#081726;border:1px solid var(--line);border-radius:14px;padding:18px;overflow:auto;max-height:720px;font-size:12px;line-height:1.6;color:#bfe0f2;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;white-space:pre;tab-size:4}details{margin:14px 0}summary{cursor:pointer;color:var(--cy);font-size:14px;padding:6px 0}
+:root{--bg:#071b2f;--p:#0c2944;--line:#2a5c7e;--text:#eff8ff;--muted:#aac5da;--cy:#43c7e7;--gr:#64dcae;--am:#ffc26b;--pk:#f68ab0;--vio:#b49aff;--rd:#ff7b72}*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#06192b,#0b2c47 55%,#071a2d);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}.wrap{max-width:1450px;margin:auto;padding:32px 38px 76px}.hero{text-align:center;padding:38px 15px 28px;border-bottom:1px solid var(--line)}.kicker{color:var(--cy);font-size:14px;letter-spacing:2px;font-weight:700}.hero h1{font-size:32px;line-height:1.25;margin:10px 0}.hero p,.desc,.sub{color:var(--muted);margin:0}.hero-meta{display:inline-block;text-align:left;margin-top:14px;line-height:1.8;color:var(--muted);font-size:14px}.hero-meta .indent{padding-left:3em}h2{font-size:26px;margin:50px 0 8px}.grid{display:grid;gap:18px}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}.card,.chart,.note{background:rgba(10,41,68,.95);border:1px solid var(--line);border-radius:16px;padding:19px}.label{color:var(--muted);font-size:13px}.num{font-size:28px;font-weight:850;line-height:1.2;margin:5px 0}.cyan{color:var(--cy)}.green{color:var(--gr)}.amber{color:var(--am)}.pink{color:var(--pk)}.violet{color:var(--vio)}.red{color:var(--rd)}.chart h3{font-size:17px;margin:0 0 4px}.chart p{font-size:13px;color:var(--muted);margin:0 0 14px}.box{height:320px;position:relative}.callout{background:#0a2a45;border:1px solid #2a5c7e;border-left:4px solid #43c7e7;border-radius:12px;padding:16px 20px;margin:18px 0;line-height:1.75}.callout.red{border-left-color:#f68ab0}.callout.gold{border-left-color:#ffc26b}.callout.green{border-left-color:#64dcae}.callout .ch{font-weight:800;margin-bottom:10px;font-size:14px;color:#fff}.callout .cl{display:block;margin:8px 0}.callout .cl b{color:#43c7e7;margin-right:2px}.insight{display:flex;gap:14px;padding:15px;border:1px solid var(--line);border-radius:12px;background:#0a2a45;margin:10px 0}.idx{font-size:22px;font-weight:800;color:var(--cy);flex:none;width:38px}.insight h3{font-size:15.5px;margin:0 0 4px}.insight p{color:var(--muted);font-size:13.5px;margin:0}.table{overflow-x:auto;margin:14px 0}.table table{width:100%;border-collapse:collapse;font-size:13.5px}.table th,.table td{padding:9px 11px;border-bottom:1px solid rgba(42,92,126,.5);text-align:right;white-space:nowrap}.table th{color:var(--muted);font-weight:600;background:rgba(12,48,78,.6)}.table th:first-child,.table td:first-child{text-align:left}.table tr:hover td{background:rgba(67,199,231,.05)}.total td{font-weight:700;border-top:2px solid #43c7e7;color:#fff}.bad{color:var(--pk)}.good{color:var(--gr)}.foot{color:#7fa6c2;font-size:12.5px;margin-top:50px;border-top:1px solid var(--line);padding-top:16px;line-height:1.9}pre.sql{background:#081726;border:1px solid var(--line);border-radius:14px;padding:18px;overflow:auto;max-height:820px;font-size:12px;line-height:1.6;color:#bfe0f2;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;white-space:pre;tab-size:2}details{margin:14px 0}summary{cursor:pointer;color:var(--cy);font-size:14px;padding:6px 0}
 </style></head><body><main class="wrap">
 
 <header class="hero">
-<div class="kicker">召回提单意愿模型 V1 · 问题诊断与优化</div>
-<h1>召回提单意愿模型 V1 问题诊断与优化方案报告</h1>
+<div class="kicker">召回提单意愿模型 V2 · 深层次问题分析与优化</div>
+<h1>召回提单意愿模型V2优化分析报告</h1>
 <div class="hero-meta">
-<div>模型：逻辑回归（V1）　·　训练集 t7recalllist_0818_0819 全名单 16,913 人</div>
-<div class="indent">重点：问题定位 → 底层特征归因 → 优化方向 → 完整可复现代码</div>
+<div>对象：V1 逻辑回归模型（AUC 0.975 样本内 / 83.2% 时间外覆盖）</div>
+<div class="indent">新数据：t7recalllist_0910（9/10 召回 2,050 人，提单率 10.34%）</div>
+<div class="indent">方法：深层次特征分析 → 特征优化 → 训练方式优化 → V2 设计</div>
 <div class="indent">统计截止：2026-09-13（America/Belize 时区）</div>
 </div>
 </header>
 
 <h2>核心结论</h2>
 <section class="grid g4" style="margin-top:18px">
-<article class="card"><div class="label">问题一</div><div class="num red">特征泄漏</div><div class="sub">样本内 AUC 0.975 虚高，真实覆盖 83.2%</div></article>
-<article class="card"><div class="label">问题二</div><div class="num amber">中间段模糊</div><div class="sub">A 6.78% ≈ B 6.60%，区分不开</div></article>
-<article class="card"><div class="label">问题三</div><div class="num pink">非活跃覆盖不足</div><div class="sub">0818 非活跃提单仅覆盖 73.6%</div></article>
-<article class="card"><div class="label">优化方向</div><div class="num violet">GBDT + 特征重构</div><div class="sub">时间切分 + 特征交互 + 专属特征</div></article>
+<article class="card"><div class="label">问题一</div><div class="num red">特征泄漏</div><div class="sub">行为特征与标签时间重叠，AUC 虚高</div></article>
+<article class="card"><div class="label">问题二</div><div class="num amber">静态特征失效</div><div class="sub">流失/账龄/风险时间外区分度弱</div></article>
+<article class="card"><div class="label">问题三</div><div class="num pink">中间段模糊</div><div class="sub">A≈B，各占半个信号</div></article>
+<article class="card"><div class="label">V2 方向</div><div class="num violet">时间切分 + GBDT</div><div class="sub">特征重构 + 交互特征 + 训练优化</div></article>
 </section>
 <div class="callout"><div class="ch">核心判断</div>
-<span class="cl"><b>① 三大问题：</b>特征泄漏（AUC 虚高）、中间段区分度不足（A≈B）、非活跃用户提单覆盖不足。</span>
-<span class="cl"><b>② 根因在底层特征：</b>行为特征与标签时间重叠导致泄漏；A/B 各只有「半个信号」（A 有获额没活跃、B 有活跃没获额）导致分数趋同；非活跃用户行为特征全为 0 导致无法区分。</span>
-<span class="cl"><b>③ 优化方向：</b>严格时间切分消除泄漏、升级 GBDT 捕捉特征交互、补充非活跃用户专属特征、分名单定制阈值。</span>
+<span class="cl"><b>① 深层次根因在特征的时间窗口：</b>V1 行为特征（9/3~9/10）与标签（8/18~9/10）时间重叠，深层行为（确认/合同/提单页）本质是提单本身，导致样本内 AUC 0.975 虚高。</span>
+<span class="cl"><b>② 静态特征时间外失效：</b>新名单 t7recalllist_0910 上，流失天数（全≤30天）、风险（无非高风险）、账龄（9.6%~13.8%）区分度弱，只有距最后活跃（≤15天 14.73% vs &gt;60天 5.26%）和历史放款（3~4次 14.64%）仍有效。</span>
+<span class="cl"><b>③ V2 优化核心：</b>严格时间切分消除泄漏 + 重构行为特征（持续性/交互/非活跃专属）+ 升级 GBDT 捕捉非线性。</span>
 </div>
 
-<h2>一、模型存在的问题</h2>
+<h2>特征口径说明</h2>
+<p class="desc">本报告模型与分析用到的全部特征及其口径如下，便于理解后文的深层次分析。</p>
+<div class="table"><table>
+<caption>模型特征口径</caption>
+<thead><tr><th>特征</th><th>来源表</th><th>字段</th><th>定义 / 计算方式</th><th>时间窗口</th></tr></thead>
+<tbody>
+<tr><td>获额通过次数</td><td>order_vir_f_copy</td><td>is_pass1</td><td>召回后「获额且审核通过」（is_pass1=1）的记录数；未获额记为 0</td><td>召回日之后</td></tr>
+<tr><td>活跃时长</td><td>event_track</td><td>active_duration</td><td>App 活跃时长（秒）累加；入模前做 log1p 变换</td><td>观察窗口内</td></tr>
+<tr><td>深层行为</td><td>event_track</td><td>newconfirm / contract_newdetails / purpose_newdetails / term_selection / newpage</td><td>「确认、合同详情、用途详情、期数切换、提单页」5 类深层行为次数之和，反映提单意向深度</td><td>观察窗口内</td></tr>
+<tr><td>浅层行为</td><td>event_track</td><td>amount_selection / plan_newdetails / comparison_page</td><td>「金额切换、计划详情、对比页」3 类浅层行为次数之和，反映浏览意向</td><td>观察窗口内</td></tr>
+<tr><td>距最后活跃</td><td>召回宽表</td><td>days_since_last_active</td><td>距最近一次活跃行为的天数；空值按 365 天处理</td><td>召回时点</td></tr>
+<tr><td>流失天数</td><td>召回宽表</td><td>churn_days</td><td>上一笔结清日到召回日的间隔天数</td><td>召回时点</td></tr>
+<tr><td>历史放款次数</td><td>召回宽表</td><td>total_remit_rnb</td><td>历史累计成功放款笔数</td><td>召回时点</td></tr>
+<tr><td>账龄</td><td>召回宽表</td><td>reg_date</td><td>注册日到统计日的天数</td><td>统计日</td></tr>
+<tr><td>风险评分</td><td>召回宽表</td><td>fpd7_score</td><td>首逾风险分；&lt;-100 万视为高风险（标记 fpd7_high=1）</td><td>召回时点</td></tr>
+<tr><td>发券次数</td><td>召回宽表</td><td>send_coupon_d_cnt</td><td>历史发券次数</td><td>召回时点</td></tr>
+</tbody>
+</table></div>
+<div class="callout"><div class="ch">口径说明要点</div>
+<span class="cl"><b>① 特征分两类：</b>「行为特征」（获额通过、活跃时长、深层/浅层行为）来自事件表，有明确时间窗口；「静态特征」（距活跃、流失、放款次数、账龄、风险、发券）来自召回宽表，是召回时点的快照。</span>
+<span class="cl"><b>② 时间窗口因名单而异：</b>训练集（0818 名单）观察窗口为 9/3~9/10、召回日 8/18；时间外验证（0910 名单）召回日为 9/10，观察窗口相应后移。</span>
+<span class="cl"><b>③ 泄漏点：</b>「深层行为」（确认/合同/提单页）与提单标签时间重叠，是 V1 特征泄漏的根源，详见后文分析。</span>
+</div>
+
+<h2>一、V1 模型深层次问题回顾</h2>
 <div class="table"><table>
 <caption class="problem-title">⚠ V1 模型三大问题</caption>
-<thead><tr><th>问题</th><th>现象</th><th>影响</th></tr></thead>
+<thead><tr><th>问题</th><th>现象</th><th>底层特征根因</th></tr></thead>
 <tbody>
-<tr><td>特征泄漏</td><td>样本内 AUC 0.975、Top20% 覆盖 97.3%；时间外仅 39.3% 覆盖 83.2%</td><td>训练评估严重虚高，误导模型能力判断</td></tr>
-<tr><td>中间段区分度不足</td><td>A 级 6.78% ≈ B 级 6.60%，几乎无差异</td><td>无法精准区分中等意向用户，触达排序失真</td></tr>
-<tr><td>非活跃覆盖不足</td><td>0818 名单非活跃提单覆盖仅 73.6%（漏 26.4%）</td><td>非活跃用户占名单 77.8%，是最大的漏损点</td></tr>
+<tr><td>特征泄漏</td><td>样本内 AUC 0.975、时间外覆盖 83.2%</td><td>行为特征窗口与标签时间重叠，深层行为=提单本身</td></tr>
+<tr><td>静态特征失效</td><td>流失/账龄/风险时间外区分度弱</td><td>新名单用户同质化（都是短流失、非高风险）</td></tr>
+<tr><td>中间段模糊</td><td>A 6.78% ≈ B 6.60%</td><td>A 有获额没活跃、B 有活跃没获额，各占半个信号</td></tr>
 </tbody>
 </table></div>
 
-<h2>二、底层特征归因</h2>
-<p class="desc">从特征层面追根溯源，解释问题为什么会发生。</p>
-<section class="grid g2">
-<article class="chart"><h3>各 tier 的特征构成（归因核心）</h3><p>A 有获额但无活跃，B 有活跃但无获额——各占半个信号。</p><div class="box"><canvas id="c1"></canvas></div></article>
-<article class="chart"><h3>深层行为 = 提单本身（泄漏证据）</h3><p>确认/合同/提单页的提单率高达 74%~97%，本质是提单过程。</p><div class="box"><canvas id="c2"></canvas></div></article>
-</section>
+<h2>二、基础特征深层次分析（时间外验证）</h2>
+<p class="desc">用全新的 9/10 召回名单 t7recalllist_0910（2,050 人，提单率 10.34%）做时间外验证，检验 V1 各特征的真实区分度。</p>
 <div class="table"><table>
-<caption>各 tier 底层特征构成（问题二根因）</caption>
-<thead><tr><th>tier</th><th>平均获额通过</th><th>平均活跃秒</th><th>平均深层行为</th><th>平均距活跃</th><th>提单率</th><th>本质</th></tr></thead>
+<caption>t7recalllist_0910 特征提单率（时间外验证，标签=9/10 后提单）</caption>
+<thead><tr><th>特征</th><th>分桶</th><th>人数</th><th>提单数</th><th>提单率</th><th>区分度评价</th></tr></thead>
 <tbody>
-<tr><td>S 极高</td><td>1.69</td><td>181</td><td>3.89</td><td>9.8</td><td class="good">13.23%</td><td>获额 + 活跃 + 深行为（三重信号）</td></tr>
-<tr><td>A 高</td><td>1.01</td><td class="bad">12</td><td>0.34</td><td>18.3</td><td>6.78%</td><td>获额通过但近期不活跃（单信号）</td></tr>
-<tr><td>B 中</td><td class="bad">0.00</td><td>13</td><td>0.05</td><td>7.7</td><td>6.60%</td><td>无获额但近期活跃（单信号）</td></tr>
-<tr><td>C 低</td><td>0.00</td><td>0</td><td>0.00</td><td>33.1</td><td class="bad">1.85%</td><td>完全沉默（无信号）</td></tr>
+<tr><td rowspan="2">距最后活跃</td><td>≤15 天</td><td>1,100</td><td>162</td><td class="good">14.73%</td><td rowspan="2" class="good">有效（2.8 倍）</td></tr>
+<tr><td>&gt;60 天/空</td><td>950</td><td>50</td><td class="bad">5.26%</td></tr>
+<tr><td rowspan="2">历史放款</td><td>3~4 次</td><td>362</td><td>53</td><td class="good">14.64%</td><td rowspan="2">中等有效</td></tr>
+<tr><td>2 次</td><td>430</td><td>34</td><td>7.91%</td></tr>
+<tr><td rowspan="2">账龄</td><td>6~12 月</td><td>210</td><td>29</td><td>13.81%</td><td rowspan="2" class="bad">弱（无单调性）</td></tr>
+<tr><td>≤3 月</td><td>1,405</td><td>135</td><td>9.61%</td></tr>
+<tr><td>流失天数</td><td>≤30 天（全部）</td><td>2,050</td><td>212</td><td>10.34%</td><td class="bad">无效（无分桶）</td></tr>
+<tr><td>风险 fpd7</td><td>非高风险（全部）</td><td>2,050</td><td>212</td><td>10.34%</td><td class="bad">无效（无非高风险）</td></tr>
 </tbody>
 </table></div>
-<div class="callout gold"><div class="ch">归因分析</div>
-<span class="cl"><b>① 中间段模糊的根因：</b>A 级「获额通过 1 次但活跃仅 12 秒」、B 级「没获额但距活跃 7.7 天」，两者各自只有半个强信号。逻辑回归是线性模型，把「获额(强) + 活跃(弱)」和「获额(弱) + 活跃(强)」加权后拉到相近分数，导致 A≈B。</span>
-<span class="cl"><b>② 特征泄漏的根因：</b>训练时行为特征窗口（9/3~9/10）与标签窗口（8/18~9/10）重叠，「确认/合同/提单页」这些深层行为本身就是提单动作，模型用「提单痕迹」预测「提单」，AUC 虚高。</span>
-<span class="cl"><b>③ 非活跃覆盖不足的根因：</b>非活跃用户的行为特征（活跃时长、深层/浅层行为）几乎全为 0，模型对这类用户「无从判断」，只能靠静态特征（流失天数、风险）弱区分，导致 26.4% 的非活跃提单被漏掉。</span>
+<section class="grid g2">
+<article class="chart"><h3>时间外特征区分度对比</h3><p>距最后活跃、历史放款仍有效；账龄/流失/风险失效。</p><div class="box"><canvas id="c1"></canvas></div></article>
+<article class="chart"><h3>A/B 中间段特征构成（根因）</h3><p>A 有获额没活跃、B 有活跃没获额，各占半个信号。</p><div class="box"><canvas id="c2"></canvas></div></article>
+</section>
+<div class="callout red"><div class="ch">深层次根因总结</div>
+<span class="cl"><b>① 特征泄漏（时间错位）：</b>V1 特征取「9/3~9/10 行为 + 8/18 后获额」，标签取「8/18~9/10 提单」，时间重叠。深层行为（确认 97.4%、合同 88.2%、提单页 73.8%）本身就是提单动作，模型在用「提单痕迹」预测提单。</span>
+<span class="cl"><b>② 静态特征同质化失效：</b>召回名单本身就是「短流失（≤30天）+ 非高风险」的用户，流失天数、风险这两个特征在名单内没有方差，自然失去区分度——V1 把它们入模只是增加了噪声。</span>
+<span class="cl"><b>③ 中间段模糊（半个信号）：</b>A 级「获额通过 1 次但活跃 12 秒」、B 级「没获额但距活跃 7.7 天」，线性模型无法表达「获额 × 活跃」的交互，把两类用户拉到相近分数。</span>
+<span class="cl"><b>④ 非活跃用户特征缺失：</b>非活跃用户行为特征全为 0，模型对占名单 77.8% 的这类用户「无从判断」，只能靠弱静态特征，导致非活跃提单覆盖仅 73.6%。</span>
 </div>
 
-<h2>三、后续优化方向</h2>
+<h2>三、特征优化方向（V2）</h2>
 <section class="note">
-<div class="insight"><div class="idx">01</div><div><h3>严格时间切分，消除特征泄漏。</h3><p>固定预测时点 T，特征只用 T 之前的数据、标签只用 T 之后的数据（如特征取 8/18~9/9，标签取 9/10~9/13），彻底切断「用提单痕迹预测提单」的循环。</p></div></div>
-<div class="insight"><div class="idx">02</div><div><h3>升级 GBDT/XGBoost，捕捉特征交互。</h3><p>让树模型自动学习「获额通过 × 活跃时长」等交互，把「获额+活跃」（真高意向）和「只有单一信号」（中低意向）拉开分数，解决 A≈B 的区分度问题。</p></div></div>
-<div class="insight"><div class="idx">03</div><div><h3>补充非活跃用户专属特征。</h3><p>引入「历史活跃间隔、获额意向（获额未通过历史）、券敏感度、历史提单频率」等，让非活跃用户也有可区分的特征，提升非活跃提单覆盖。</p></div></div>
-<div class="insight"><div class="idx">04</div><div><h3>重新设计分段边界。</h3><p>既然 A/B 区分度弱，可合并 A+B，或用 lift 拐点、分位点重新切分，保证每一段都有明确的提单率差异。</p></div></div>
+<div class="insight"><div class="idx">01</div><div><h3>严格时间对齐，消除特征泄漏。</h3><p>固定预测时点 T，特征只用 T 之前的数据（如 9/9 前），标签只用 T 之后（9/10 后）。把「行为特征」与「提单标签」彻底分离，避免用提单痕迹预测提单。</p></div></div>
+<div class="insight"><div class="idx">02</div><div><h3>重构行为特征：从「有无」到「持续性 + 深度加权」。</h3><p>不只统计行为次数，而是：① 行为的时间衰减（越近越重）；② 行为深度加权（确认&gt;合同&gt;用途&gt;期数&gt;提单页）；③ 行为持续性（最近7/14/30天的活跃天数、连续活跃、活跃间隔）。</p></div></div>
+<div class="insight"><div class="idx">03</div><div><h3>构造交互特征，解决中间段模糊。</h3><p>新增「获额通过 × 活跃时长」「获额通过 × 距活跃」「行为深度 × 流失天数」等交互特征，让模型区分「获额+活跃（真高意向）」和「只有单一信号（中低意向）」，拉开 A/B 差距。</p></div></div>
+<div class="insight"><div class="idx">04</div><div><h3>补充非活跃用户专属特征。</h3><p>针对占 77.8% 的非活跃用户，引入「历史活跃间隔、获额意向（历史获额未通过）、券敏感度（历史券响应）、历史提单频率」，让非活跃用户也有可区分的特征，提升非活跃提单覆盖。</p></div></div>
 </section>
 
-<h2>四、完整可复现代码</h2>
-<p class="desc">代码分两部分：<b>第一部分</b>为模型训练底层代码（Python，可直接运行复现模型训练全过程）；<b>第二部分</b>为数据指标复现 PGsql（可复现报告中的所有数据指标）。</p>
+<h2>四、训练方式优化方向（V2）</h2>
+<section class="note">
+<div class="insight"><div class="idx">01</div><div><h3>时间切分验证（Walk-Forward），而非随机划分。</h3><p>V1 用随机 7:3 划分，无法暴露时间泄漏。V2 改为按时间切分：用「较早批次」训练、「较晚批次」验证（如 0818 训练、0902/0910 验证），评估分数才是真实预测能力。</p></div></div>
+<div class="insight"><div class="idx">02</div><div><h3>升级 GBDT/XGBoost，捕捉非线性与交互。</h3><p>树模型自动学习「获额 × 活跃」等交互和非线性关系，无需人工构造交互特征，天然解决 A/B 中间段模糊问题，提升区分度。</p></div></div>
+<div class="insight"><div class="idx">03</div><div><h3>样本不平衡处理优化。</h3><p>提单正样本占比仅约 10%，V1 用 class_weight=balanced。V2 可尝试 SMOTE 过采样、样本加权、或阈值调优，在「召回率」和「精确率」之间取得平衡。</p></div></div>
+<div class="insight"><div class="idx">04</div><div><h3>分名单定制阈值。</h3><p>大名单（0818）用严格阈值放大压缩收益，小名单（0902/0910）放宽阈值保覆盖；活跃/非活跃分别建模，兼顾「筛活跃」和「挖非活跃」两个目标。</p></div></div>
+</section>
 
-<h3 style="color:#43c7e7;font-size:19px;margin:26px 0 6px;font-weight:800">第一部分：模型训练底层代码（Python）</h3>
-<p class="desc">以下完整 Python 脚本可直接运行，复现 V1 模型的完整训练流程：SQL 提取特征 → 特征工程 → 逻辑回归训练 → AUC 评估 → 全量打分分级。</p>
-<details open><summary>展开/收起模型训练代码</summary>
-<pre class="code"># ============================================================
+<h2>五、V2 模型设计方案</h2>
+<div class="table"><table>
+<caption>V1 vs V2 设计对比</caption>
+<thead><tr><th>维度</th><th>V1（现状）</th><th>V2（优化）</th></tr></thead>
+<tbody>
+<tr><td>特征时间</td><td>与标签时间重叠（泄漏）</td><td>严格时间切分（T 前特征 / T 后标签）</td></tr>
+<tr><td>行为特征</td><td>简单 count（有无）</td><td>持续性 + 深度加权 + 时间衰减</td></tr>
+<tr><td>交互特征</td><td>无</td><td>获额×活跃、行为深度×流失等</td></tr>
+<tr><td>非活跃特征</td><td>缺失</td><td>历史活跃间隔、券敏感度、获额意向</td></tr>
+<tr><td>算法</td><td>逻辑回归</td><td>GBDT/XGBoost</td></tr>
+<tr><td>验证方式</td><td>随机 7:3</td><td>时间切分 Walk-Forward</td></tr>
+<tr><td>评估口径</td><td>样本内 AUC</td><td>时间外 AUC + 提单覆盖率</td></tr>
+</tbody>
+</table></div>
+
+<h2>附录：完整可复现代码</h2>
+<p class="desc">代码分两部分：<b>第一部分</b>为构建模型的完整 Python 代码（可直接运行复现模型训练与预测全流程）；<b>第二部分</b>为复现报告全部数据指标的 PGsql。</p>
+
+<h3 style="color:#43c7e7;font-size:19px;margin:26px 0 6px;font-weight:800">第一部分：模型构建完整代码（Python）</h3>
+<p class="desc">以下完整 Python 脚本可直接运行，复现整个模型流程：SQL 提取特征 → 特征工程 → 逻辑回归训练 → AUC 评估 → 全量打分分级 → 时间外验证（应用到 0910 名单预测）。</p>
+<details open><summary>展开/收起模型构建代码</summary>
+<pre class="sql"># ============================================================
 # 召回提单意愿模型 V1（逻辑回归）—— 完整可运行训练代码
 # 运行环境：Python 3.8+，依赖 psycopg2 / pandas / numpy / scikit-learn
 #
-# 训练流程（5 步，直接顺序执行即可复现模型）：
+# 训练流程（6 步，顺序执行即可复现整个模型流程）：
 #   Step 1  SQL 提取训练特征（t7recalllist_0818_0819，标签=8/18后是否提单）
 #   Step 2  特征工程（连续长尾特征 log1p 变换）
-#   Step 3  逻辑回归训练（7:3 划分，class_weight=balanced 处理样本不平衡）
+#   Step 3  逻辑回归训练（7:3 划分，class_weight=balanced 处理不平衡）
 #   Step 4  评估（测试集 AUC）并输出特征权重（系数）
 #   Step 5  全量预测提单概率 → 意愿分 → 分级（S/A/B/C）
+#   Step 6  时间外验证（应用到 t7recalllist_0910 预测提单概率）
 #
 # 注意：本模型存在特征泄漏（行为特征与标签时间重叠），
 #       AUC 0.975 为样本内乐观估计，真实能力以时间外验证为准。
@@ -95,7 +149,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 
-# ---------- 1. SQL 提取训练特征（t7recalllist_0818_0819，标签=8/18后是否提单） ----------
+# ---------- Step 1: SQL 提取训练特征 ----------
 FEATURE_SQL = &quot;&quot;&quot;
 WITH base AS (
     SELECT t.churn_user_id AS uid,
@@ -139,7 +193,7 @@ cols = [d[0] for d in cur.description]
 df = pd.DataFrame(cur.fetchall(), columns=cols)
 conn.close()
 
-# ---------- 2. 特征工程 ----------
+# ---------- Step 2: 特征工程 ----------
 feats = [&#x27;pass_cnt&#x27;, &#x27;active_sec&#x27;, &#x27;deep_cnt&#x27;, &#x27;shallow_cnt&#x27;, &#x27;dsl&#x27;,
          &#x27;churn_days&#x27;, &#x27;remit_cnt&#x27;, &#x27;age_days&#x27;, &#x27;fpd7_high&#x27;, &#x27;coupon_cnt&#x27;]
 X = df[feats].astype(float).copy()
@@ -147,18 +201,20 @@ for c in [&#x27;pass_cnt&#x27;, &#x27;active_sec&#x27;, &#x27;deep_cnt&#x27;, &#
     X[c] = np.log1p(X[c])
 y = df[&#x27;label&#x27;].values
 
-# ---------- 3. 训练/评估（7:3 划分，处理不平衡） ----------
+# ---------- Step 3: 训练（7:3 划分，处理不平衡） ----------
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.3, random_state=42, stratify=y)
 model = LogisticRegression(max_iter=1000, class_weight=&#x27;balanced&#x27;, C=1.0)
 model.fit(X_train, y_train)
+
+# ---------- Step 4: 评估与输出特征权重 ----------
 auc = roc_auc_score(y_test, model.predict_proba(X_test)[:, 1])
 print(&#x27;AUC:&#x27;, round(auc, 4))
 print(&#x27;intercept =&#x27;, round(model.intercept_[0], 6))
 for k, v in zip(feats, model.coef_[0]):
     print(f&#x27;{k} = {round(v, 6)}&#x27;)
 
-# ---------- 4. 全量预测意愿分 ----------
+# ---------- Step 5: 全量预测意愿分并分级 ----------
 X_all = X
 df[&#x27;prob&#x27;] = model.predict_proba(X_all)[:, 1]
 df[&#x27;score&#x27;] = (df[&#x27;prob&#x27;] * 100).round(0).astype(int)
@@ -166,13 +222,55 @@ df[&#x27;tier&#x27;] = np.where(df[&#x27;score&#x27;] &gt;= 50, &#x27;S&#x27;,
              np.where(df[&#x27;score&#x27;] &gt;= 20, &#x27;A&#x27;,
              np.where(df[&#x27;score&#x27;] &gt;= 10, &#x27;B&#x27;, &#x27;C&#x27;)))
 print(df.groupby(&#x27;tier&#x27;)[&#x27;label&#x27;].agg([&#x27;count&#x27;, &#x27;sum&#x27;]))
+
+# ---------- Step 6: 时间外验证（应用到 t7recalllist_0910） ----------
+# 复用同一套特征口径（获额/行为窗口按 0910 名单的召回日 9/10 调整）
+OOT_SQL = &quot;&quot;&quot;
+WITH base AS (
+    SELECT t.churn_user_id::int AS uid,
+        (SELECT MIN(o.apply_date) FROM wangchuanliang.order_loan_f_v2_copy o
+         WHERE o.user_id=t.churn_user_id::int AND o.apply_date &gt;= DATE &#x27;2026-09-10&#x27;) IS NOT NULL AS label,
+        t.churn_days, t.days_since_last_active AS dsl,
+        t.total_remit_rnb AS remit_cnt, t.fpd7_score,
+        t.send_coupon_d_cnt AS coupon_cnt, t.reg_date::date AS reg_date,
+        (SELECT COUNT(*) FROM wangchuanliang.order_vir_f_copy v
+         WHERE v.user_id=t.churn_user_id::int AND v.vir_date &gt;= DATE &#x27;2026-09-10&#x27; AND v.is_pass1=1) AS pass_cnt
+    FROM wangchuanliang.t7recalllist_0910 t
+)
+SELECT b.uid, b.label::int AS label,
+    COALESCE(b.pass_cnt,0) AS pass_cnt, 0 AS active_sec, 0 AS deep_cnt, 0 AS shallow_cnt,
+    COALESCE(b.dsl,365) AS dsl, b.churn_days, b.remit_cnt, b.coupon_cnt,
+    (CURRENT_DATE - b.reg_date) AS age_days,
+    CASE WHEN b.fpd7_score &lt; -1000000 THEN 1 ELSE 0 END AS fpd7_high
+FROM base b
+&quot;&quot;&quot;
+# 用 V1 模型对 0910 名单预测意愿分（时间外）
+conn = psycopg2.connect(host=&#x27;47.89.225.85&#x27;, port=8000, dbname=&#x27;kaby_dw&#x27;,
+                        user=&#x27;wangchuanliang_readonly&#x27;, password=&#x27;gMOZQxb3spunr&#x27;, connect_timeout=60)
+conn.autocommit = True
+cur = conn.cursor()
+cur.execute(&quot;SET TIME ZONE &#x27;America/Belize&#x27;&quot;)
+cur.execute(OOT_SQL)
+cols = [d[0] for d in cur.description]
+oot = pd.DataFrame(cur.fetchall(), columns=cols)
+conn.close()
+X_oot = oot[feats].astype(float).copy()
+for c in [&#x27;pass_cnt&#x27;, &#x27;active_sec&#x27;, &#x27;deep_cnt&#x27;, &#x27;shallow_cnt&#x27;]:
+    X_oot[c] = np.log1p(X_oot[c])
+oot[&#x27;prob&#x27;] = model.predict_proba(X_oot)[:, 1]
+oot[&#x27;score&#x27;] = (oot[&#x27;prob&#x27;] * 100).round(0).astype(int)
+oot[&#x27;tier&#x27;] = np.where(oot[&#x27;score&#x27;] &gt;= 50, &#x27;S&#x27;,
+              np.where(oot[&#x27;score&#x27;] &gt;= 20, &#x27;A&#x27;,
+              np.where(oot[&#x27;score&#x27;] &gt;= 10, &#x27;B&#x27;, &#x27;C&#x27;)))
+print(&#x27;=== 时间外验证（0910 名单）各 tier 提单率 ===&#x27;)
+print(oot.groupby(&#x27;tier&#x27;)[&#x27;label&#x27;].agg([&#x27;count&#x27;, &#x27;sum&#x27;]))
 </pre>
 </details>
 
 <h3 style="color:#43c7e7;font-size:19px;margin:34px 0 6px;font-weight:800">第二部分：数据指标复现 PGsql</h3>
-<p class="desc">以下 PGsql 可复现报告中的所有数据指标：特征提单率、深层行为提单率、各 tier 特征构成、tier/score 分段提单率、模型落地提单覆盖。</p>
+<p class="desc">以下 PGsql 可复现报告中的所有数据指标：特征提单率、深层行为提单率、各 tier 特征构成、tier/score 分段提单率、模型落地提单覆盖、时间外特征区分度。</p>
 <details open><summary>展开/收起数据指标复现 SQL</summary>
-<pre class="code">-- ============================================================================
+<pre class="sql">-- ============================================================================
 -- 召回提单意愿模型 —— 设计说明与效果评估 完整复现 SQL
 -- 数据源：kaby_dw（wangchuanliang schema），统计截止 2026-09-13（America/Belize）
 -- ============================================================================
@@ -301,13 +399,41 @@ SELECT tier, COUNT(*) AS 用户数,
     ROUND(AVG(dsl),1) AS 平均距活跃
 FROM wangchuanliang.t7recall_active0910
 GROUP BY tier ORDER BY tier;
+
+-- 【块7】时间外验证：t7recalllist_0910 特征提单率（标签=9/10后提单）
+WITH base AS (
+    SELECT t.*,
+        (SELECT MIN(o.apply_date) FROM wangchuanliang.order_loan_f_v2_copy o
+         WHERE o.user_id=t.churn_user_id::int AND o.apply_date &gt;= DATE &#x27;2026-09-10&#x27;) IS NOT NULL AS applied
+    FROM wangchuanliang.t7recalllist_0910 t
+)
+SELECT dim, bucket, cnt, ac, rate FROM (
+    SELECT &#x27;距最后活跃&#x27; AS dim,
+        CASE WHEN days_since_last_active&lt;=15 THEN &#x27;≤15天&#x27; WHEN days_since_last_active&lt;=30 THEN &#x27;16~30天&#x27;
+             WHEN days_since_last_active&lt;=60 THEN &#x27;31~60天&#x27; ELSE &#x27;&gt;60天/空&#x27; END AS bucket,
+        COUNT(*) cnt, SUM(CASE WHEN applied THEN 1 ELSE 0 END) ac,
+        ROUND(SUM(CASE WHEN applied THEN 1 ELSE 0 END)::numeric/COUNT(*)*100,2) rate
+    FROM base GROUP BY 2
+    UNION ALL SELECT &#x27;历史放款次数&#x27;,
+        CASE WHEN total_remit_rnb&lt;=1 THEN &#x27;1次&#x27; WHEN total_remit_rnb=2 THEN &#x27;2次&#x27;
+             WHEN total_remit_rnb&lt;=4 THEN &#x27;3~4次&#x27; ELSE &#x27;5次+&#x27; END,
+        COUNT(*), SUM(CASE WHEN applied THEN 1 ELSE 0 END),
+        ROUND(SUM(CASE WHEN applied THEN 1 ELSE 0 END)::numeric/COUNT(*)*100,2)
+    FROM base GROUP BY 2
+    UNION ALL SELECT &#x27;账龄&#x27;,
+        CASE WHEN CURRENT_DATE-reg_date::date&lt;=90 THEN &#x27;≤3月&#x27; WHEN CURRENT_DATE-reg_date::date&lt;=180 THEN &#x27;3~6月&#x27;
+             WHEN CURRENT_DATE-reg_date::date&lt;=365 THEN &#x27;6~12月&#x27; ELSE &#x27;&gt;1年&#x27; END,
+        COUNT(*), SUM(CASE WHEN applied THEN 1 ELSE 0 END),
+        ROUND(SUM(CASE WHEN applied THEN 1 ELSE 0 END)::numeric/COUNT(*)*100,2)
+    FROM base GROUP BY 2
+) x ORDER BY dim, bucket;
 </pre>
 </details>
 
 <p class="foot"><b>口径说明</b><br>
 <b>训练集</b>：t7recalllist_0818_0819 全名单，标签=8/18 后是否提单<br>
-<b>特征</b>：获额通过次数（order_vir_f_copy is_pass1=1）、活跃时长/深层/浅层行为（event_track）、距最后活跃/流失天数/历史放款/账龄/风险/发券次数（宽表）<br>
-<b>模型</b>：逻辑回归，class_weight=balanced，7:3 划分<br>
+<b>时间外验证</b>：t7recalllist_0910（9/10 召回 2,050 人，标签=9/10 后是否提单）<br>
+<b>特征</b>：获额通过次数、活跃时长/深层/浅层行为（event_track）、距最后活跃/流失天数/历史放款/账龄/风险/发券次数（宽表）<br>
 <b>数据源</b>：wangchuanliang 各表（kaby_dw，截止 2026-09-13）</p>
 </main>
 <script>/**
@@ -335,8 +461,7 @@ GROUP BY tier ORDER BY tier;
 Chart.defaults.color='#c0d7e8';Chart.defaults.font.family='-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif';
 var gridC='rgba(80,142,176,.16)';
 function base(){return {responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:12,padding:15}}},scales:{x:{grid:{color:gridC}},y:{grid:{color:gridC},beginAtZero:true}}};}
-function dayOpts(){var o=base();o.plugins.tooltip={callbacks:{label:function(c){return c.dataset.label+': '+c.parsed.y;}}};return o;}
 function pctOpts(max){var o=base();o.plugins.tooltip={callbacks:{label:function(c){return c.dataset.label+': '+c.parsed.y+'%';}}};o.scales.y.max=max;o.scales.y.ticks={callback:function(v){return v+'%';}};return o;}
-new Chart(document.getElementById('c1'),{type:'bar',data:{labels:['S极高','A高','B中','C低'],datasets:[{label:'平均获额通过',data:[1.69,1.01,0.0,0.0],backgroundColor:'#43c7e7',borderRadius:3},{label:'平均活跃秒',data:[181,12,13,0],backgroundColor:'#64dcae',borderRadius:3},{label:'平均深层行为',data:[3.89,0.34,0.05,0.0],backgroundColor:'#ffc26b',borderRadius:3}]},options:dayOpts()});
-new Chart(document.getElementById('c2'),{type:'bar',data:{labels:['确认','合同','用途','期数','提单页'],datasets:[{label:'提单率 %',data:[97.4,88.24,81.74,75.13,73.75],backgroundColor:['#f68ab0','#f68ab0','#f68ab0','#ffc26b','#ffc26b'],borderRadius:3}]},options:pctOpts(110)});
+new Chart(document.getElementById('c1'),{type:'bar',data:{labels:['距活跃≤15','距活跃>60','放款3~4次','放款2次','账龄6~12月','账龄≤3月'],datasets:[{label:'提单率 %',data:[14.73,5.26,14.64,7.91,13.81,9.61],backgroundColor:['#64dcae','#f68ab0','#64dcae','#ffc26b','#ffc26b','#ffc26b'],borderRadius:3}]},options:pctOpts(18)});
+new Chart(document.getElementById('c2'),{type:'bar',data:{labels:['S极高','A高','B中','C低'],datasets:[{label:'平均获额通过',data:[1.69,1.01,0.0,0.0],backgroundColor:'#43c7e7',borderRadius:3},{label:'平均活跃秒',data:[181,12,13,0],backgroundColor:'#64dcae',borderRadius:3}]},options:base()});
 </script></body></html>
