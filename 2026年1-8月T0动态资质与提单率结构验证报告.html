@@ -17,7 +17,7 @@
 <table><thead><tr><th>获额月份</th><th>T0 获额用户数</th><th>整体当日提单率</th><th>资质较好占比</th><th>较好层提单率</th><th>一般层提单率</th><th>整体预测逾期风险</th></tr></thead><tbody><tr><td>2026-01</td><td>19,520</td><td>51.45%</td><td>28.11%</td><td>52.43%</td><td>51.07%</td><td>36.91%</td></tr><tr><td>2026-02</td><td>22,739</td><td>50.61%</td><td>27.66%</td><td>51.93%</td><td>50.11%</td><td>37.11%</td></tr><tr><td>2026-03</td><td>22,198</td><td>45.04%</td><td>29.75%</td><td>47.96%</td><td>43.81%</td><td>37.13%</td></tr><tr><td>2026-04</td><td>20,780</td><td>45.65%</td><td>28.40%</td><td>48.44%</td><td>44.55%</td><td>37.27%</td></tr><tr><td>2026-05</td><td>23,875</td><td>44.03%</td><td>24.74%</td><td>45.30%</td><td>43.62%</td><td>37.55%</td></tr><tr><td>2026-06</td><td>22,635</td><td>42.47%</td><td>20.20%</td><td>43.59%</td><td>42.18%</td><td>38.01%</td></tr><tr><td>2026-07</td><td>23,275</td><td>40.39%</td><td>19.11%</td><td>40.57%</td><td>40.35%</td><td>38.15%</td></tr><tr><td>2026-08</td><td>22,111</td><td>38.19%</td><td>18.80%</td><td>38.23%</td><td>38.18%</td><td>38.37%</td></tr></tbody></table>
 <h2>三、模型与统计口径</h2><ul><li><b>快照时点：</b>每个 T0 获额通过时点；同一用户 20 秒内多次获额，只保留订单编号最大的最后一笔；同一用户同日保留最早的有效 T0 获额。</li><li><b>评分特征：</b>获额前已成功放款次数、历史逾期次数/占比、历史最高逾期天数、历史借款金额、历史加权息费、历史贷款时长、上一笔订单结清是否逾期及其金额/息费、当次获额额度。</li><li><b>训练标签：</b>该次获额对应的下一笔成功放款订单，在到期时是否逾期；结清日为空/早于 2000-01-01 或晚于到期日均视为逾期。训练期为 2025 年，且订单需在 2026-06-30 前到期。</li><li><b>分层：</b>预测逾期风险处于训练样本 P40 以下定义为“资质较好”；其余为“资质一般”。该标签是动态的，同一用户不同 T0 时点可被归入不同层。</li><li><b>T0 当日提单率：</b>该 T0 获额日、获额时间之后且同一自然日提交订单的用户数 / T0 获额用户数；本次不拆 0—1 小时。</li></ul>
 <h2>四、下一步验证与行动</h2><ol><li>在“资质较好/一般”层内，再按实际息费、额度、渠道、历史放款次数分桶，比较同桶内息费变化与当日提单率，避免把人群结构变化误判为价格效应。</li><li>重点关注“资质较好但未提单”的用户池，计算其后续 7/30 天提单、放款和风险表现，确认其是否真是长期流失而非延后转化。</li><li>以高质量、获额后仍未提单人群为对象，随机设置小幅降息/不降息对照组；同时观察增量提单、增量放款、到期逾期和增量利润，判定是否值得拉升提单率。</li><li>在生产前补充更强的时点特征（历史还款行为、设备/渠道、额度变化、行为信号），并重新评估 AUC；当前模型只适合用于探索性分层。</li></ol>
-<h2>附录：可复现 SQL</h2><p class="muted">模块一输出严格时点特征和训练标签；模块二使用已拟合参数对 2026 年 1—8 月全量 T0 用户评分并按月汇总。</p><details class="code"><summary>模块一：T0 事件、历史特征与训练标签</summary><pre><code>-- ================================================================
+<h2>附录：可复现代码</h2><p class="muted">SQL 负责特征和数据库内全量汇总；Python 负责抽取训练样本、拟合逻辑回归、导出模型参数，并使用该参数生成全量评分 SQL。</p><details class="code"><summary>模块一：T0 事件、历史特征与训练标签（SQL）</summary><pre><code>-- ================================================================
 -- 结清 0 在贷 T0 动态资质模型：特征快照与训练标签
 -- 评分对象：2026-01-01 至 2026-08-31 的 T0 获额通过用户。
 -- 训练样本：2024-01-01 至 2025-12-31 的 T0 样本，且后续成功放款订单
@@ -263,7 +263,272 @@ SELECT
 FROM feature_base AS b
 CROSS JOIN params AS p
 ORDER BY b.vir_time, b.user_id, b.offer_serial_id;
-</code></pre></details><details class="code"><summary>模块二：模型参数回填与月度分层汇总</summary><pre><code>-- 自动生成：2026 年 1—8 月 T0 动态资质评分及月度分层汇总
+</code></pre></details><details class="code"><summary>模块二：模型训练与参数导出（Python）</summary><pre><code>&quot;&quot;&quot;构建结清0在贷 T0 时点动态资质评分，并输出 2026 年 1—8 月分层结果。&quot;&quot;&quot;
+import ast
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import psycopg2
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import brier_score_loss, roc_auc_score
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+
+
+ROOT = Path(__file__).resolve().parents[1]
+SQL_PATH = ROOT / &quot;work&quot; / &quot;t0_dynamic_quality_feature_extract.sql&quot;
+FEATURE_PATH = ROOT / &quot;work&quot; / &quot;t0_dynamic_quality_features.csv&quot;
+SCORE_PATH = ROOT / &quot;work&quot; / &quot;t0_dynamic_quality_scores_2026_01_08.csv&quot;
+MONTHLY_PATH = ROOT / &quot;work&quot; / &quot;t0_dynamic_quality_monthly_2026_01_08.csv&quot;
+METRICS_PATH = ROOT / &quot;work&quot; / &quot;t0_dynamic_quality_model_metrics.csv&quot;
+
+FEATURES = [
+    &quot;max_credit_apply_amt&quot;,
+    &quot;hist_remit_cnt&quot;,
+    &quot;hist_settled_cnt&quot;,
+    &quot;hist_overdue_order_cnt&quot;,
+    &quot;hist_max_overdue_days&quot;,
+    &quot;hist_avg_remit_amt&quot;,
+    &quot;hist_total_remit_amt&quot;,
+    &quot;hist_weighted_interest_rate&quot;,
+    &quot;user_loan_tenure_days&quot;,
+    &quot;days_since_last_repaid&quot;,
+    &quot;hist_overdue_order_rate&quot;,
+    &quot;previous_order_overdue_flag&quot;,
+    &quot;previous_remit_amt&quot;,
+    &quot;previous_interest_rate&quot;,
+]
+
+
+def load_db():
+    tree = ast.parse((ROOT / &quot;work&quot; / &quot;query_t4_0804_0807_full.py&quot;).read_text())
+    db = next(
+        ast.literal_eval(n.value)
+        for n in tree.body
+        if isinstance(n, ast.Assign)
+        and any(isinstance(t, ast.Name) and t.id == &quot;DB&quot; for t in n.targets)
+    )
+    db[&quot;options&quot;] = &quot;-c statement_timeout=900000&quot;
+    return db
+
+
+def export_features():
+    sql = SQL_PATH.read_text().strip().rstrip(&quot;;&quot;)
+    # 仅用于拟合参数的 2025 年成熟样本，按 user_id 等距抽取 10%；
+    # 2026 月度结论后续由数据库对全量 T0 事件回填同一套模型参数。
+    sql = (
+        &quot;WITH feature_data AS (&quot; + sql + &quot;) &quot;
+        &quot;SELECT max_credit_apply_amt, hist_remit_cnt, hist_settled_cnt, &quot;
+        &quot;hist_overdue_order_cnt, hist_max_overdue_days, hist_avg_remit_amt, &quot;
+        &quot;hist_total_remit_amt, hist_weighted_interest_rate, user_loan_tenure_days, &quot;
+        &quot;days_since_last_repaid, hist_overdue_order_rate, previous_order_overdue_flag, &quot;
+        &quot;previous_remit_amt, previous_interest_rate, next_order_overdue_label, vir_date &quot;
+        &quot;FROM feature_data &quot;
+        &quot;WHERE is_train_period = 1 AND is_mature_label_sample = 1 &quot;
+        &quot;AND MOD(user_id, 10) = 0&quot;
+    )
+    with psycopg2.connect(**load_db()) as conn:
+        with conn.cursor() as cur, FEATURE_PATH.open(&quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as f:
+            cur.copy_expert(f&quot;COPY ({sql}) TO STDOUT WITH CSV HEADER&quot;, f)
+
+
+def prepare(df):
+    for col in FEATURES + [&quot;next_order_overdue_label&quot;]:
+        df[col] = pd.to_numeric(df[col], errors=&quot;coerce&quot;)
+    df[&quot;vir_date&quot;] = pd.to_datetime(df[&quot;vir_date&quot;])
+    return df
+
+
+def fit_and_score(df):
+    train = df[df.next_order_overdue_label.notna()].copy()
+    train[&quot;month&quot;] = train.vir_date.dt.to_period(&quot;M&quot;).astype(str)
+
+    # 用 2025 年 10—12 月作为时间外验证集，避免随机切分高估效果。
+    fit = train[train.vir_date &lt; pd.Timestamp(&quot;2025-10-01&quot;)]
+    valid = train[train.vir_date &gt;= pd.Timestamp(&quot;2025-10-01&quot;)]
+    model = Pipeline([
+        (&quot;impute&quot;, SimpleImputer(strategy=&quot;median&quot;)),
+        (&quot;scale&quot;, StandardScaler()),
+        (&quot;logit&quot;, LogisticRegression(max_iter=1000, C=0.5, solver=&quot;lbfgs&quot;)),
+    ])
+    model.fit(fit[FEATURES], fit.next_order_overdue_label.astype(int))
+
+    def evaluate(name, part):
+        p = model.predict_proba(part[FEATURES])[:, 1]
+        return {
+            &quot;样本&quot;: name,
+            &quot;样本量&quot;: len(part),
+            &quot;逾期率&quot;: part.next_order_overdue_label.mean(),
+            &quot;AUC&quot;: roc_auc_score(part.next_order_overdue_label, p),
+            &quot;Brier&quot;: brier_score_loss(part.next_order_overdue_label, p),
+        }
+
+    metrics = pd.DataFrame([evaluate(&quot;训练期_2025_01_09&quot;, fit), evaluate(&quot;时间外验证_2025_10_12&quot;, valid)])
+
+    # 重新用全部 2025 年成熟样本拟合，给 2026 年 T0 快照评分。
+    final_model = Pipeline([
+        (&quot;impute&quot;, SimpleImputer(strategy=&quot;median&quot;)),
+        (&quot;scale&quot;, StandardScaler()),
+        (&quot;logit&quot;, LogisticRegression(max_iter=1000, C=0.5, solver=&quot;lbfgs&quot;)),
+    ])
+    final_model.fit(train[FEATURES], train.next_order_overdue_label.astype(int))
+
+    # 阈值固定为训练样本预测风险的 P40：低于该阈值定义为“资质较好”。
+    train_risk = final_model.predict_proba(train[FEATURES])[:, 1]
+    good_threshold = float(np.quantile(train_risk, 0.40))
+    metrics[&quot;资质较好阈值_预测逾期风险P40&quot;] = good_threshold
+    return final_model, good_threshold, metrics
+
+
+if __name__ == &quot;__main__&quot;:
+    export_features()
+    raw = prepare(pd.read_csv(FEATURE_PATH))
+    model, good_threshold, metrics = fit_and_score(raw)
+    logit = model.named_steps[&quot;logit&quot;]
+    scaler = model.named_steps[&quot;scale&quot;]
+    imputer = model.named_steps[&quot;impute&quot;]
+    params = pd.DataFrame({
+        &quot;feature&quot;: FEATURES,
+        &quot;impute_median&quot;: imputer.statistics_,
+        &quot;mean&quot;: scaler.mean_,
+        &quot;scale&quot;: scaler.scale_,
+        &quot;coefficient&quot;: logit.coef_[0],
+    })
+    params.loc[len(params)] = [&quot;intercept&quot;, 0, 0, 1, logit.intercept_[0]]
+    params.to_csv(ROOT / &quot;work&quot; / &quot;t0_dynamic_quality_model_parameters.csv&quot;, index=False, encoding=&quot;utf-8-sig&quot;)
+    metrics.to_csv(METRICS_PATH, index=False, encoding=&quot;utf-8-sig&quot;)
+    print(f&quot;特征快照：{FEATURE_PATH}，{len(raw):,} 条&quot;)
+    print(metrics.to_string(index=False))
+    print(params.to_string(index=False))
+</code></pre></details><details class="code"><summary>模块三：模型参数回填与月度分层汇总（Python）</summary><pre><code>&quot;&quot;&quot;用已拟合的动态资质模型，在数据库内回填 2026 年 1—8 月全量 T0 用户。&quot;&quot;&quot;
+import ast
+from pathlib import Path
+
+import pandas as pd
+import psycopg2
+
+
+ROOT = Path(__file__).resolve().parents[1]
+BASE_SQL_PATH = ROOT / &quot;work&quot; / &quot;t0_dynamic_quality_feature_extract.sql&quot;
+PARAMS_PATH = ROOT / &quot;work&quot; / &quot;t0_dynamic_quality_model_parameters.csv&quot;
+OUT_SQL_PATH = ROOT / &quot;work&quot; / &quot;t0_dynamic_quality_score_2026.sql&quot;
+OUT_CSV_PATH = ROOT / &quot;work&quot; / &quot;t0_dynamic_quality_monthly_2026_01_08.csv&quot;
+THRESHOLD = 0.362164
+
+
+def load_db():
+    tree = ast.parse((ROOT / &quot;work&quot; / &quot;query_t4_0804_0807_full.py&quot;).read_text())
+    db = next(
+        ast.literal_eval(n.value)
+        for n in tree.body
+        if isinstance(n, ast.Assign)
+        and any(isinstance(t, ast.Name) and t.id == &quot;DB&quot; for t in n.targets)
+    )
+    db[&quot;options&quot;] = &quot;-c statement_timeout=900000&quot;
+    return db
+
+
+def build_sql():
+    params = pd.read_csv(PARAMS_PATH, encoding=&quot;utf-8-sig&quot;)
+    intercept = float(params.loc[params.feature == &quot;intercept&quot;, &quot;coefficient&quot;].iloc[0])
+    pieces = [str(intercept)]
+    for row in params[params.feature != &quot;intercept&quot;].itertuples(index=False):
+        # 评分阶段缺失值与训练阶段一致：以训练样本中位数替代。
+        # 本批特征已大部分 COALESCE；该写法用于兜底并保持模型可复现。
+        median = float(row.impute_median)
+        pieces.append(
+            f&quot;({float(row.coefficient)} * &quot;
+            f&quot;((COALESCE({row.feature}, {median}) - {float(row.mean)}) / {float(row.scale)}))&quot;
+        )
+    linear = &quot;\n          + &quot;.join(pieces)
+    base_sql = BASE_SQL_PATH.read_text(encoding=&quot;utf-8&quot;).strip().rstrip(&quot;;&quot;)
+    return f&quot;&quot;&quot;-- 自动生成：2026 年 1—8 月 T0 动态资质评分及月度分层汇总
+-- 评分越低代表预测下一笔成熟放款订单的逾期风险越低。
+WITH feature_data AS (
+{base_sql}
+),
+scored AS (
+    SELECT
+        vir_date,
+        is_t0_apply,
+        1.0 / (1.0 + EXP(-(
+          {linear}
+        ))) AS predicted_overdue_risk
+    FROM feature_data
+    WHERE is_score_period = 1
+),
+scored_tier AS (
+    SELECT
+        TO_CHAR(vir_date, &#x27;YYYY-MM&#x27;) AS 提单月份,
+        CASE WHEN predicted_overdue_risk &lt;= {THRESHOLD}
+             THEN &#x27;资质较好&#x27; ELSE &#x27;资质一般&#x27; END AS 动态资质分层,
+        is_t0_apply,
+        predicted_overdue_risk
+    FROM scored
+),
+monthly_tier AS (
+    SELECT
+        提单月份,
+        动态资质分层,
+        COUNT(*) AS T0获额用户数,
+        SUM(is_t0_apply) AS T0当日提单用户数,
+        SUM(is_t0_apply)::numeric / NULLIF(COUNT(*), 0) AS T0当日提单率,
+        AVG(predicted_overdue_risk) AS 平均预测逾期风险
+    FROM scored_tier
+    GROUP BY 提单月份, 动态资质分层
+),
+monthly_total AS (
+    SELECT
+        提单月份,
+        &#x27;全部T0用户&#x27; AS 动态资质分层,
+        COUNT(*) AS T0获额用户数,
+        SUM(is_t0_apply) AS T0当日提单用户数,
+        SUM(is_t0_apply)::numeric / NULLIF(COUNT(*), 0) AS T0当日提单率,
+        AVG(predicted_overdue_risk) AS 平均预测逾期风险
+    FROM scored_tier
+    GROUP BY 提单月份
+),
+monthly_good_share AS (
+    SELECT
+        提单月份,
+        SUM(CASE WHEN 动态资质分层 = &#x27;资质较好&#x27; THEN 1 ELSE 0 END)::numeric
+            / NULLIF(COUNT(*), 0) AS 资质较好用户占比
+    FROM scored_tier
+    GROUP BY 提单月份
+)
+SELECT
+    a.提单月份,
+    a.动态资质分层,
+    a.T0获额用户数,
+    a.T0当日提单用户数,
+    a.T0当日提单率,
+    a.平均预测逾期风险,
+    s.资质较好用户占比
+FROM (
+    SELECT * FROM monthly_total
+    UNION ALL
+    SELECT * FROM monthly_tier
+) AS a
+INNER JOIN monthly_good_share AS s
+    ON a.提单月份 = s.提单月份
+ORDER BY a.提单月份,
+         CASE a.动态资质分层
+              WHEN &#x27;全部T0用户&#x27; THEN 1
+              WHEN &#x27;资质较好&#x27; THEN 2 ELSE 3 END;
+&quot;&quot;&quot;
+
+
+if __name__ == &quot;__main__&quot;:
+    sql = build_sql()
+    OUT_SQL_PATH.write_text(sql, encoding=&quot;utf-8&quot;)
+    with psycopg2.connect(**load_db()) as conn:
+        result = pd.read_sql_query(sql, conn)
+    result.to_csv(OUT_CSV_PATH, index=False, encoding=&quot;utf-8-sig&quot;)
+    print(result.to_string(index=False))
+    print(f&quot;\nSQL：{OUT_SQL_PATH}\n结果：{OUT_CSV_PATH}&quot;)
+</code></pre></details><details class="code"><summary>模块四：全量评分汇总 SQL（自动生成）</summary><pre><code>-- 自动生成：2026 年 1—8 月 T0 动态资质评分及月度分层汇总
 -- 评分越低代表预测下一笔成熟放款订单的逾期风险越低。
 WITH feature_data AS (
 -- ================================================================
