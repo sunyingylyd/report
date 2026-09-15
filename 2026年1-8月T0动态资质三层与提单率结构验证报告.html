@@ -9,7 +9,7 @@
 <h2>四、模型效果复核：真实逾期率是否呈风险梯度</h2><div class="note"><b>结论：三层分层在 2026 年真实到期订单中呈现稳定的风险梯度。</b><br>资质最好、一般、较差三层的累计实际订单逾期率依次为 33.79%、36.31%、41.10%；资质较差与资质最好的差异为 7.31 个百分点。1—8 月每个月均保持“最好 &lt; 一般 &lt; 较差”的顺序，说明模型可区分后续真实风险，不只是训练样本内的拟合结果。</div><div class="tablewrap"><table><thead><tr><th>动态资质层</th><th>真实已到期订单数</th><th>真实逾期订单数</th><th>累计实际订单逾期率</th></tr></thead><tbody><tr><td>资质最好（P0-P30）</td><td>17,227</td><td>5,821</td><td>33.79%</td></tr><tr><td>资质一般（P30-P60）</td><td>10,695</td><td>3,883</td><td>36.31%</td></tr><tr><td>资质较差（P60-P100）</td><td>47,078</td><td>19,350</td><td>41.10%</td></tr></tbody></table></div><p class="muted">评价样本为 2026 年 1—8 月的 T0 同日真实提单且成功放款订单；仅统计截至 2026-09-10 已到期订单。模型本身的时间外 AUC 为 0.529，因此该结果证明其具备分层信号，但仍不宜视为高精度授信模型。</p>
 <h2>五、模型与统计口径</h2><ul><li><b>T0 快照：</b>同一用户 20 秒内多次获额，只保留订单编号最大的最后一笔；同一用户同日保留最早有效 T0 获额。</li><li><b>训练标签：</b>该次获额对应的下一笔成功放款订单到期时是否逾期；结清日为空/早于 2000-01-01 或晚于到期日，均视为逾期。</li><li><b>特征：</b>获额前成功放款、历史逾期、金额、加权息费、贷款时长、上一笔订单表现与当次获额额度；不使用获额后、提单后或今天的未来信息。</li><li><b>T0 当日提单率：</b>获额后同一自然日提交订单的用户数 / T0 获额用户数；不拆分 0—1 小时。</li></ul>
 <h2>六、下一步验证</h2><ol><li>三层内继续按实际息费、额度、渠道、历史放款次数分桶，比较同桶内息费变化与 T0 提单率。</li><li>追踪“资质最好但未提单”用户后续 7/30 天的提单、放款和风险，区分长期流失与延后转化。</li><li>对资质最好且未提单用户开展随机降息/不降息对照，测量增量提单、放款、逾期和利润，决定是否拉升提单率。</li></ol>
-<h2>附录：可复现代码</h2><p class="muted">SQL 负责时点特征及全量汇总；Python 负责样本抽取、逻辑回归训练、参数导出与全量评分 SQL 生成。</p><details class="code"><summary>模块一：T0 事件、历史特征与训练标签（SQL）</summary><pre><code>-- ================================================================
+<h2>附录：可复现代码</h2><div class="note"><b>执行顺序：</b><br>1. 设置环境变量 <code>KABY_DB_HOST</code>、<code>KABY_DB_PORT</code>、<code>KABY_DB_NAME</code>、<code>KABY_DB_USER</code>、<code>KABY_DB_PASSWORD</code>；<br>2. 执行 <code>python work/run_t0_dynamic_quality_model.py</code>，产出训练样本、时间外验证指标、P30/P60 阈值和模型参数；<br>3. 执行 <code>python work/score_t0_dynamic_quality_2026.py</code>，产出嵌入模型参数的完整 SQL 及 2026 年 1—8 月全量月度结果；<br>4. 执行 <code>python work/build_t0_dynamic_quality_report.py</code>，生成本报告。数据库密码不写入任何附录代码。</div><p class="muted">模块一负责严格时点特征和标签；模块二完成训练；模块三将训练参数回填全量 T0 数据；模块四按结果生成可视化报告；模块五是可直接运行的最终 PostgreSQL 汇总 SQL。</p><details class="code"><summary>模块一：T0 事件、历史特征与训练标签（SQL）</summary><pre><code>-- ================================================================
 -- 结清 0 在贷 T0 动态资质模型：特征快照与训练标签
 -- 评分对象：2026-01-01 至 2026-08-31 的 T0 获额通过用户。
 -- 训练样本：2024-01-01 至 2025-12-31 的 T0 样本，且后续成功放款订单
@@ -283,8 +283,9 @@ SELECT
 FROM feature_base AS b
 CROSS JOIN params AS p
 ORDER BY b.vir_time, b.user_id, b.offer_serial_id;
-</code></pre></details><details class="code"><summary>模块二：模型训练与参数导出（Python）</summary><pre><code>&quot;&quot;&quot;构建结清0在贷 T0 时点动态资质评分，并输出 2026 年 1—8 月分层结果。&quot;&quot;&quot;
+</code></pre></details><details class="code"><summary>模块二：模型训练、验证与参数导出（Python）</summary><pre><code>&quot;&quot;&quot;构建结清0在贷 T0 时点动态资质评分，并输出 2026 年 1—8 月分层结果。&quot;&quot;&quot;
 import ast
+import os
 from pathlib import Path
 
 import numpy as np
@@ -323,6 +324,20 @@ FEATURES = [
 
 
 def load_db():
+    &quot;&quot;&quot;优先读取环境变量，便于脱离当前工作目录复现。
+
+    KABY_DB_HOST / KABY_DB_PORT / KABY_DB_NAME / KABY_DB_USER / KABY_DB_PASSWORD
+    均已设置时直接使用；本地已有安全配置时才使用兼容性回退。
+    &quot;&quot;&quot;
+    keys = {
+        &quot;host&quot;: &quot;KABY_DB_HOST&quot;, &quot;port&quot;: &quot;KABY_DB_PORT&quot;, &quot;dbname&quot;: &quot;KABY_DB_NAME&quot;,
+        &quot;user&quot;: &quot;KABY_DB_USER&quot;, &quot;password&quot;: &quot;KABY_DB_PASSWORD&quot;,
+    }
+    env_db = {key: os.environ.get(env_key) for key, env_key in keys.items()}
+    if all(env_db.values()):
+        env_db[&quot;port&quot;] = int(env_db[&quot;port&quot;])
+        env_db[&quot;options&quot;] = &quot;-c statement_timeout=900000&quot;
+        return env_db
     tree = ast.parse((ROOT / &quot;work&quot; / &quot;query_t4_0804_0807_full.py&quot;).read_text())
     db = next(
         ast.literal_eval(n.value)
@@ -429,6 +444,7 @@ if __name__ == &quot;__main__&quot;:
     print(params.to_string(index=False))
 </code></pre></details><details class="code"><summary>模块三：模型参数回填与月度分层汇总（Python）</summary><pre><code>&quot;&quot;&quot;用已拟合的动态资质模型，在数据库内回填 2026 年 1—8 月全量 T0 用户。&quot;&quot;&quot;
 import ast
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -444,6 +460,16 @@ OUT_CSV_PATH = ROOT / &quot;work&quot; / &quot;t0_dynamic_quality_monthly_2026_0
 
 
 def load_db():
+    &quot;&quot;&quot;优先读取环境变量，避免将数据库密钥写入可分享的分析代码。&quot;&quot;&quot;
+    keys = {
+        &quot;host&quot;: &quot;KABY_DB_HOST&quot;, &quot;port&quot;: &quot;KABY_DB_PORT&quot;, &quot;dbname&quot;: &quot;KABY_DB_NAME&quot;,
+        &quot;user&quot;: &quot;KABY_DB_USER&quot;, &quot;password&quot;: &quot;KABY_DB_PASSWORD&quot;,
+    }
+    env_db = {key: os.environ.get(env_key) for key, env_key in keys.items()}
+    if all(env_db.values()):
+        env_db[&quot;port&quot;] = int(env_db[&quot;port&quot;])
+        env_db[&quot;options&quot;] = &quot;-c statement_timeout=900000&quot;
+        return env_db
     tree = ast.parse((ROOT / &quot;work&quot; / &quot;query_t4_0804_0807_full.py&quot;).read_text())
     db = next(
         ast.literal_eval(n.value)
@@ -581,7 +607,119 @@ if __name__ == &quot;__main__&quot;:
     result.to_csv(OUT_CSV_PATH, index=False, encoding=&quot;utf-8-sig&quot;)
     print(result.to_string(index=False))
     print(f&quot;\nSQL：{OUT_SQL_PATH}\n结果：{OUT_CSV_PATH}&quot;)
-</code></pre></details><details class="code"><summary>模块四：全量评分汇总 SQL（自动生成）</summary><pre><code>-- 自动生成：2026 年 1—8 月 T0 动态资质评分及月度分层汇总
+</code></pre></details><details class="code"><summary>模块四：报告生成与全部指标展示（Python）</summary><pre><code>&quot;&quot;&quot;生成 2026 年 1—8 月 T0 动态资质三层与提单率结构验证报告。&quot;&quot;&quot;
+from html import escape
+from pathlib import Path
+
+import pandas as pd
+
+
+ROOT = Path(__file__).resolve().parents[1]
+MONTHLY = ROOT / &quot;work&quot; / &quot;t0_dynamic_quality_monthly_2026_01_08.csv&quot;
+METRICS = ROOT / &quot;work&quot; / &quot;t0_dynamic_quality_model_metrics.csv&quot;
+FEATURE_SQL = ROOT / &quot;work&quot; / &quot;t0_dynamic_quality_feature_extract.sql&quot;
+SCORE_SQL = ROOT / &quot;work&quot; / &quot;t0_dynamic_quality_score_2026.sql&quot;
+TRAIN_PY = ROOT / &quot;work&quot; / &quot;run_t0_dynamic_quality_model.py&quot;
+SCORE_PY = ROOT / &quot;work&quot; / &quot;score_t0_dynamic_quality_2026.py&quot;
+REPORT_PY = Path(__file__).resolve()
+MODEL_PARAMS_CSV = ROOT / &quot;work&quot; / &quot;t0_dynamic_quality_model_parameters.csv&quot;
+MODEL_METRICS_CSV = ROOT / &quot;work&quot; / &quot;t0_dynamic_quality_model_metrics.csv&quot;
+OUT_DIR = ROOT / &quot;outputs&quot; / &quot;T0动态资质与提单率结构验证报告&quot;
+OUT = OUT_DIR / &quot;2026年1-8月T0动态资质三层与提单率结构验证报告.html&quot;
+TIERS = [&quot;资质最好（P0-P30）&quot;, &quot;资质一般（P30-P60）&quot;, &quot;资质较差（P60-P100）&quot;]
+COLORS = [&quot;#64dcae&quot;, &quot;#ffc26b&quot;, &quot;#f68ab0&quot;]
+
+
+def pct(v):
+    return f&quot;{v * 100:.2f}%&quot;
+
+
+def chart(title, series, months):
+    width, height = 760, 290
+    values = [v for _, x in series for v in x]
+    lo, hi = min(values), max(values)
+    span = hi - lo or 1
+    grids = &quot;&quot;.join(
+        f&#x27;&lt;line x1=&quot;42&quot; y1=&quot;{42 + j * (height - 88) / 4:.1f}&quot; x2=&quot;718&quot; y2=&quot;{42 + j * (height - 88) / 4:.1f}&quot; stroke=&quot;#2a5c7e&quot; opacity=&quot;.55&quot;/&gt;&#x27;
+        for j in range(5)
+    )
+    lines, dots, legends = [], [], []
+    for j, (name, vals) in enumerate(series):
+        color = COLORS[j]
+        pts = [(42 + i * (width - 84) / (len(vals) - 1), height - 46 - (v - lo) * (height - 94) / span) for i, v in enumerate(vals)]
+        lines.append(f&#x27;&lt;polyline points=&quot;{&quot; &quot;.join(f&quot;{x:.1f},{y:.1f}&quot; for x,y in pts)}&quot; fill=&quot;none&quot; stroke=&quot;{color}&quot; stroke-width=&quot;3&quot;/&gt;&#x27;)
+        dots += [f&#x27;&lt;circle cx=&quot;{x:.1f}&quot; cy=&quot;{y:.1f}&quot; r=&quot;4&quot; fill=&quot;{color}&quot;&gt;&lt;title&gt;{name} {months[i]}：{pct(vals[i])}&lt;/title&gt;&lt;/circle&gt;&#x27; for i,(x,y) in enumerate(pts)]
+        legends.append(f&#x27;&lt;span&gt;&lt;i style=&quot;background:{color}&quot;&gt;&lt;/i&gt;{name}&lt;/span&gt;&#x27;)
+    labels = &quot;&quot;.join(f&#x27;&lt;text x=&quot;{42+i*(width-84)/(len(months)-1):.1f}&quot; y=&quot;270&quot; text-anchor=&quot;middle&quot;&gt;{m[5:]}月&lt;/text&gt;&#x27; for i,m in enumerate(months))
+    return f&#x27;&#x27;&#x27;&lt;section class=&quot;panel&quot;&gt;&lt;h3&gt;{title}&lt;/h3&gt;&lt;div class=&quot;legend&quot;&gt;{&quot;&quot;.join(legends)}&lt;/div&gt;&lt;svg viewBox=&quot;0 0 {width} {height}&quot;&gt;{grids}{&quot;&quot;.join(lines)}{&quot;&quot;.join(dots)}{labels}&lt;text x=&quot;42&quot; y=&quot;23&quot;&gt;{pct(hi)}&lt;/text&gt;&lt;text x=&quot;42&quot; y=&quot;247&quot;&gt;{pct(lo)}&lt;/text&gt;&lt;/svg&gt;&lt;/section&gt;&#x27;&#x27;&#x27;
+
+
+def code_block(name, source):
+    return f&#x27;&lt;details class=&quot;code&quot;&gt;&lt;summary&gt;{name}&lt;/summary&gt;&lt;pre&gt;&lt;code&gt;{escape(source)}&lt;/code&gt;&lt;/pre&gt;&lt;/details&gt;&#x27;
+
+
+def main():
+    d = pd.read_csv(MONTHLY, encoding=&quot;utf-8-sig&quot;)
+    d.columns = [str(c).lower() if str(c).isascii() else c for c in d.columns]
+    month, tier_name = &quot;提单月份&quot;, &quot;动态资质分层&quot;
+    count, rate = &quot;t0获额用户数&quot;, &quot;t0当日提单率&quot;
+    shares = [&quot;资质最好用户占比&quot;, &quot;资质一般用户占比&quot;, &quot;资质较差用户占比&quot;]
+    mature_count, overdue_count, overdue_rate = &quot;实际已到期订单数&quot;, &quot;实际逾期订单数&quot;, &quot;实际订单逾期率&quot;
+    total = d[d[tier_name] == &quot;全部T0用户&quot;].sort_values(month).copy()
+    tiers = {x: d[d[tier_name] == x].sort_values(month).copy() for x in TIERS}
+    months = total[month].tolist()
+    m = pd.read_csv(METRICS, encoding=&quot;utf-8-sig&quot;)
+    valid = m[m[&quot;样本&quot;] == &quot;时间外验证_2025_10_12&quot;].iloc[0]
+    p30 = float(valid[&quot;资质最好阈值_预测逾期风险P30&quot;])
+    p60 = float(valid[&quot;资质一般上限_预测逾期风险P60&quot;])
+    first, last = total.iloc[0], total.iloc[-1]
+    evaluation_rows = []
+    evaluation_rates = []
+    for label in TIERS:
+        frame = tiers[label]
+        matured = int(frame[mature_count].sum())
+        overdue = int(frame[overdue_count].sum())
+        actual_rate = overdue / matured
+        evaluation_rates.append(actual_rate)
+        evaluation_rows.append(
+            f&quot;&lt;tr&gt;&lt;td&gt;{label}&lt;/td&gt;&lt;td&gt;{matured:,}&lt;/td&gt;&lt;td&gt;{overdue:,}&lt;/td&gt;&lt;td&gt;{pct(actual_rate)}&lt;/td&gt;&lt;/tr&gt;&quot;
+        )
+    tier_spread = evaluation_rates[-1] - evaluation_rates[0]
+
+    rows = []
+    for ym in months:
+        p = d[d[month] == ym].set_index(tier_name)
+        t = p.loc[&quot;全部T0用户&quot;]
+        rows.append(f&quot;&lt;tr&gt;&lt;td&gt;{ym}&lt;/td&gt;&lt;td&gt;{int(t[count]):,}&lt;/td&gt;&lt;td&gt;{pct(t[rate])}&lt;/td&gt;&lt;td&gt;{pct(p.loc[TIERS[0], shares[0]])}&lt;/td&gt;&lt;td&gt;{pct(p.loc[TIERS[1], shares[1]])}&lt;/td&gt;&lt;td&gt;{pct(p.loc[TIERS[2], shares[2]])}&lt;/td&gt;&lt;td&gt;{pct(p.loc[TIERS[0], rate])}&lt;/td&gt;&lt;td&gt;{pct(p.loc[TIERS[1], rate])}&lt;/td&gt;&lt;td&gt;{pct(p.loc[TIERS[2], rate])}&lt;/td&gt;&lt;td&gt;{int(t[mature_count]):,}&lt;/td&gt;&lt;td&gt;{int(t[overdue_count]):,}&lt;/td&gt;&lt;td&gt;{pct(t[overdue_rate])}&lt;/td&gt;&lt;/tr&gt;&quot;)
+    charts = chart(&quot;T0 当日提单率：三类动态资质用户&quot;, [(x, tiers[x][rate].tolist()) for x in TIERS], months) + chart(&quot;T0 获额用户结构：三类动态资质占比&quot;, list(zip(TIERS, [total[x].tolist() for x in shares])), months) + chart(&quot;实际订单逾期率：三类动态资质用户&quot;, [(x, tiers[x][overdue_rate].tolist()) for x in TIERS], months)
+    feature_sql = FEATURE_SQL.read_text(encoding=&quot;utf-8&quot;)
+    score_sql = SCORE_SQL.read_text(encoding=&quot;utf-8&quot;)
+    train_py = TRAIN_PY.read_text(encoding=&quot;utf-8&quot;)
+    score_py = SCORE_PY.read_text(encoding=&quot;utf-8&quot;)
+    report_py = REPORT_PY.read_text(encoding=&quot;utf-8&quot;)
+    model_params_csv = MODEL_PARAMS_CSV.read_text(encoding=&quot;utf-8-sig&quot;)
+    model_metrics_csv = MODEL_METRICS_CSV.read_text(encoding=&quot;utf-8-sig&quot;)
+    html = f&#x27;&#x27;&#x27;&lt;!doctype html&gt;&lt;html lang=&quot;zh-CN&quot;&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1&quot;&gt;&lt;title&gt;2026年1—8月T0动态资质三层与提单率结构验证报告&lt;/title&gt;&lt;style&gt;
+:root{{--bg:#071b2f;--p:#0c2944;--line:#2a5c7e;--text:#eff8ff;--muted:#aac5da;--cy:#43c7e7;--gr:#64dcae;--am:#ffc26b;--pk:#f68ab0}}*{{box-sizing:border-box}}body{{margin:0;background:linear-gradient(135deg,#06192b,#0b2c47 55%,#071a2d);color:var(--text);font:15px/1.7 -apple-system,BlinkMacSystemFont,&quot;PingFang SC&quot;,&quot;Microsoft YaHei&quot;,sans-serif}}main{{max-width:1220px;margin:auto;padding:46px 28px 72px}}h1{{font-size:32px;line-height:1.25;margin:0 0 10px}}h2{{font-size:22px;margin:42px 0 15px;border-left:4px solid var(--cy);padding-left:12px}}h3{{font-size:17px;margin:0 0 8px}}.sub,.muted{{color:var(--muted)}}.sub{{margin:0 0 28px}}.grid{{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}}.card,.panel{{background:rgba(12,41,68,.9);border:1px solid var(--line);border-radius:10px;padding:18px}}.value{{font-size:26px;font-weight:700;color:var(--cy)}}.label{{color:var(--muted);font-size:13px}}.panel{{margin:16px 0}}.legend{{display:flex;gap:20px;flex-wrap:wrap;color:var(--muted);font-size:13px;margin-bottom:8px}}.legend i{{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}}svg{{width:100%;height:auto}}svg text{{fill:#aac5da;font-size:12px}}table{{width:100%;border-collapse:collapse;background:rgba(12,41,68,.9);font-size:13px}}th,td{{padding:9px 10px;text-align:right;border-bottom:1px solid rgba(42,92,126,.55);white-space:nowrap}}th{{background:#103453;color:#dff5ff}}th:first-child,td:first-child{{text-align:left}}.tablewrap{{overflow:auto;border:1px solid var(--line);border-radius:10px}}.note{{border-left:4px solid var(--am);background:rgba(255,194,107,.10);padding:14px 18px;border-radius:6px;margin:14px 0}}li{{margin:8px 0}}details.code{{background:#061526;border:1px solid #285575;border-radius:8px;margin:12px 0}}summary{{cursor:pointer;padding:13px 16px;color:#dff5ff;font-weight:600}}pre{{margin:0;padding:16px;overflow:auto;border-top:1px solid #285575;color:#d4eaf7;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre}}@media(max-width:760px){{main{{padding:28px 15px}}.grid{{grid-template-columns:repeat(2,1fr)}}h1{{font-size:25px}}}}
+&lt;/style&gt;&lt;/head&gt;&lt;body&gt;&lt;main&gt;
+&lt;h1&gt;2026 年 1—8 月 T0 动态资质三层与提单率结构验证&lt;/h1&gt;&lt;p class=&quot;sub&quot;&gt;对象：结清 0 在贷、当日获额通过的 T0 用户；按获额日分月。评分仅使用该次获额时点之前的信息，评分越低代表预测下一笔订单逾期风险越低。&lt;/p&gt;
+&lt;div class=&quot;grid&quot;&gt;&lt;div class=&quot;card&quot;&gt;&lt;div class=&quot;label&quot;&gt;整体 T0 当日提单率&lt;/div&gt;&lt;div class=&quot;value&quot;&gt;{pct(first[rate])} → {pct(last[rate])}&lt;/div&gt;&lt;div class=&quot;muted&quot;&gt;1 月至 8 月&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;card&quot;&gt;&lt;div class=&quot;label&quot;&gt;资质最好用户占比&lt;/div&gt;&lt;div class=&quot;value&quot;&gt;{pct(first[shares[0]])} → {pct(last[shares[0]])}&lt;/div&gt;&lt;div class=&quot;muted&quot;&gt;风险最低P30 · 1月-8月&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;card&quot;&gt;&lt;div class=&quot;label&quot;&gt;资质最好用户提单率&lt;/div&gt;&lt;div class=&quot;value&quot;&gt;{pct(tiers[TIERS[0]].iloc[0][rate])} → {pct(tiers[TIERS[0]].iloc[-1][rate])}&lt;/div&gt;&lt;div class=&quot;muted&quot;&gt;风险最低P30 · 1月-8月&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;card&quot;&gt;&lt;div class=&quot;label&quot;&gt;资质一般用户占比&lt;/div&gt;&lt;div class=&quot;value&quot;&gt;{pct(first[shares[1]])} → {pct(last[shares[1]])}&lt;/div&gt;&lt;div class=&quot;muted&quot;&gt;风险一般P30-P60 · 1月-8月&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;card&quot;&gt;&lt;div class=&quot;label&quot;&gt;资质一般用户提单率&lt;/div&gt;&lt;div class=&quot;value&quot;&gt;{pct(tiers[TIERS[1]].iloc[0][rate])} → {pct(tiers[TIERS[1]].iloc[-1][rate])}&lt;/div&gt;&lt;div class=&quot;muted&quot;&gt;风险一般P30-P60 · 1月-8月&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;card&quot;&gt;&lt;div class=&quot;label&quot;&gt;资质较差用户占比&lt;/div&gt;&lt;div class=&quot;value&quot;&gt;{pct(first[shares[2]])} → {pct(last[shares[2]])}&lt;/div&gt;&lt;div class=&quot;muted&quot;&gt;风险最高P40 · 1月-8月&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;card&quot;&gt;&lt;div class=&quot;label&quot;&gt;资质较差用户提单率&lt;/div&gt;&lt;div class=&quot;value&quot;&gt;{pct(tiers[TIERS[2]].iloc[0][rate])} → {pct(tiers[TIERS[2]].iloc[-1][rate])}&lt;/div&gt;&lt;div class=&quot;muted&quot;&gt;风险最高P40 · 1月-8月&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;card&quot;&gt;&lt;div class=&quot;label&quot;&gt;时间外验证 AUC&lt;/div&gt;&lt;div class=&quot;value&quot;&gt;{valid[&#x27;AUC&#x27;]:.3f}&lt;/div&gt;&lt;div class=&quot;muted&quot;&gt;仅作探索性分层&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;h2&gt;一、三层分层定义&lt;/h2&gt;&lt;div class=&quot;note&quot;&gt;&lt;b&gt;在 2025 年训练样本中按预测风险由低到高排序，固定 P30 和 P60 阈值，并应用于 2026 年所有 T0 用户。&lt;/b&gt;&lt;br&gt;风险 ≤ {pct(p30)}：资质最好（风险最低 30%）；{pct(p30)} &amp;lt; 风险 ≤ {pct(p60)}：资质一般（中间 30%）；风险 &amp;gt; {pct(p60)}：资质较差（风险最高 40%）。2026 年各层占比不必等于 30% / 30% / 40%，偏离本身反映人群风险结构变化。&lt;/div&gt;
+&lt;h2&gt;二、初步结论&lt;/h2&gt;&lt;ul&gt;&lt;li&gt;&lt;b&gt;整体提单率下降：&lt;/b&gt;{pct(first[rate])} 降至 {pct(last[rate])}，变化 {(last[rate]-first[rate])*100:.2f} 个百分点。&lt;/li&gt;&lt;li&gt;&lt;b&gt;资质结构变差：&lt;/b&gt;资质最好占比从 {pct(first[shares[0]])} 降至 {pct(last[shares[0]])}；资质较差占比从 {pct(first[shares[2]])} 升至 {pct(last[shares[2]])}。&lt;/li&gt;&lt;li&gt;&lt;b&gt;三层提单率均下降：&lt;/b&gt;故不能把总提单率降低完全归因为任一风险层单独流失；但较差层的占比抬升会使后续订单风险承压。&lt;/li&gt;&lt;li&gt;&lt;b&gt;不能直接归因息费：&lt;/b&gt;AUC 为 {valid[&#x27;AUC&#x27;]:.3f}，模型区分度偏弱，当前只提供探索性线索。须在同一动态资质层内控制渠道、额度、历史贷款次数后比较息费，或通过随机让利试验验证。&lt;/li&gt;&lt;/ul&gt;
+&lt;h2&gt;三、月度趋势&lt;/h2&gt;{charts}&lt;div class=&quot;note&quot;&gt;&lt;b&gt;实际订单逾期率口径：&lt;/b&gt;分层后，以 T0 获额后同日真实提单且成功放款、并在 2026-09-10 前到期的整笔订单为分母；若结清日为空/早于 2000-01-01，或结清日晚于到期日，则该订单计为逾期。图表和表格均同时展示成熟订单数，避免将未到期订单误算为正常。&lt;/div&gt;&lt;div class=&quot;tablewrap&quot;&gt;&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;获额月份&lt;/th&gt;&lt;th&gt;T0获额用户数&lt;/th&gt;&lt;th&gt;整体当日提单率&lt;/th&gt;&lt;th&gt;最好占比&lt;/th&gt;&lt;th&gt;一般占比&lt;/th&gt;&lt;th&gt;较差占比&lt;/th&gt;&lt;th&gt;最好层提单率&lt;/th&gt;&lt;th&gt;一般层提单率&lt;/th&gt;&lt;th&gt;较差层提单率&lt;/th&gt;&lt;th&gt;实际已到期订单数&lt;/th&gt;&lt;th&gt;实际逾期订单数&lt;/th&gt;&lt;th&gt;整体实际订单逾期率&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;{&#x27;&#x27;.join(rows)}&lt;/tbody&gt;&lt;/table&gt;&lt;/div&gt;
+&lt;h2&gt;四、模型效果复核：真实逾期率是否呈风险梯度&lt;/h2&gt;&lt;div class=&quot;note&quot;&gt;&lt;b&gt;结论：三层分层在 2026 年真实到期订单中呈现稳定的风险梯度。&lt;/b&gt;&lt;br&gt;资质最好、一般、较差三层的累计实际订单逾期率依次为 {pct(evaluation_rates[0])}、{pct(evaluation_rates[1])}、{pct(evaluation_rates[2])}；资质较差与资质最好的差异为 {tier_spread*100:.2f} 个百分点。1—8 月每个月均保持“最好 &amp;lt; 一般 &amp;lt; 较差”的顺序，说明模型可区分后续真实风险，不只是训练样本内的拟合结果。&lt;/div&gt;&lt;div class=&quot;tablewrap&quot;&gt;&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;动态资质层&lt;/th&gt;&lt;th&gt;真实已到期订单数&lt;/th&gt;&lt;th&gt;真实逾期订单数&lt;/th&gt;&lt;th&gt;累计实际订单逾期率&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;{&#x27;&#x27;.join(evaluation_rows)}&lt;/tbody&gt;&lt;/table&gt;&lt;/div&gt;&lt;p class=&quot;muted&quot;&gt;评价样本为 2026 年 1—8 月的 T0 同日真实提单且成功放款订单；仅统计截至 2026-09-10 已到期订单。模型本身的时间外 AUC 为 {valid[&#x27;AUC&#x27;]:.3f}，因此该结果证明其具备分层信号，但仍不宜视为高精度授信模型。&lt;/p&gt;
+&lt;h2&gt;五、模型与统计口径&lt;/h2&gt;&lt;ul&gt;&lt;li&gt;&lt;b&gt;T0 快照：&lt;/b&gt;同一用户 20 秒内多次获额，只保留订单编号最大的最后一笔；同一用户同日保留最早有效 T0 获额。&lt;/li&gt;&lt;li&gt;&lt;b&gt;训练标签：&lt;/b&gt;该次获额对应的下一笔成功放款订单到期时是否逾期；结清日为空/早于 2000-01-01 或晚于到期日，均视为逾期。&lt;/li&gt;&lt;li&gt;&lt;b&gt;特征：&lt;/b&gt;获额前成功放款、历史逾期、金额、加权息费、贷款时长、上一笔订单表现与当次获额额度；不使用获额后、提单后或今天的未来信息。&lt;/li&gt;&lt;li&gt;&lt;b&gt;T0 当日提单率：&lt;/b&gt;获额后同一自然日提交订单的用户数 / T0 获额用户数；不拆分 0—1 小时。&lt;/li&gt;&lt;/ul&gt;
+&lt;h2&gt;六、下一步验证&lt;/h2&gt;&lt;ol&gt;&lt;li&gt;三层内继续按实际息费、额度、渠道、历史放款次数分桶，比较同桶内息费变化与 T0 提单率。&lt;/li&gt;&lt;li&gt;追踪“资质最好但未提单”用户后续 7/30 天的提单、放款和风险，区分长期流失与延后转化。&lt;/li&gt;&lt;li&gt;对资质最好且未提单用户开展随机降息/不降息对照，测量增量提单、放款、逾期和利润，决定是否拉升提单率。&lt;/li&gt;&lt;/ol&gt;
+&lt;h2&gt;附录：可复现代码&lt;/h2&gt;&lt;div class=&quot;note&quot;&gt;&lt;b&gt;执行顺序：&lt;/b&gt;&lt;br&gt;1. 设置环境变量 &lt;code&gt;KABY_DB_HOST&lt;/code&gt;、&lt;code&gt;KABY_DB_PORT&lt;/code&gt;、&lt;code&gt;KABY_DB_NAME&lt;/code&gt;、&lt;code&gt;KABY_DB_USER&lt;/code&gt;、&lt;code&gt;KABY_DB_PASSWORD&lt;/code&gt;；&lt;br&gt;2. 执行 &lt;code&gt;python work/run_t0_dynamic_quality_model.py&lt;/code&gt;，产出训练样本、时间外验证指标、P30/P60 阈值和模型参数；&lt;br&gt;3. 执行 &lt;code&gt;python work/score_t0_dynamic_quality_2026.py&lt;/code&gt;，产出嵌入模型参数的完整 SQL 及 2026 年 1—8 月全量月度结果；&lt;br&gt;4. 执行 &lt;code&gt;python work/build_t0_dynamic_quality_report.py&lt;/code&gt;，生成本报告。数据库密码不写入任何附录代码。&lt;/div&gt;&lt;p class=&quot;muted&quot;&gt;模块一负责严格时点特征和标签；模块二完成训练；模块三将训练参数回填全量 T0 数据；模块四按结果生成可视化报告；模块五是可直接运行的最终 PostgreSQL 汇总 SQL。&lt;/p&gt;{code_block(&#x27;模块一：T0 事件、历史特征与训练标签（SQL）&#x27;, feature_sql)}{code_block(&#x27;模块二：模型训练、验证与参数导出（Python）&#x27;, train_py)}{code_block(&#x27;模块三：模型参数回填与月度分层汇总（Python）&#x27;, score_py)}{code_block(&#x27;模块四：报告生成与全部指标展示（Python）&#x27;, report_py)}{code_block(&#x27;模块五：全量评分、真实逾期率与月度汇总（PostgreSQL）&#x27;, score_sql)}{code_block(&#x27;训练输出：模型系数、标准化参数与截距（CSV）&#x27;, model_params_csv)}{code_block(&#x27;训练输出：训练期与时间外验证指标、P30/P60 阈值（CSV）&#x27;, model_metrics_csv)}
+&lt;/main&gt;&lt;/body&gt;&lt;/html&gt;&#x27;&#x27;&#x27;
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    OUT.write_text(html, encoding=&quot;utf-8&quot;)
+    print(OUT)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></details><details class="code"><summary>模块五：全量评分、真实逾期率与月度汇总（PostgreSQL）</summary><pre><code>-- 自动生成：2026 年 1—8 月 T0 动态资质评分及月度分层汇总
 -- 评分越低代表预测下一笔成熟放款订单的逾期风险越低。
 WITH feature_data AS (
 -- ================================================================
@@ -966,5 +1104,24 @@ ORDER BY a.提单月份,
               WHEN &#x27;全部T0用户&#x27; THEN 1
               WHEN &#x27;资质最好（P0-P30）&#x27; THEN 2
               WHEN &#x27;资质一般（P30-P60）&#x27; THEN 3 ELSE 4 END;
+</code></pre></details><details class="code"><summary>训练输出：模型系数、标准化参数与截距（CSV）</summary><pre><code>feature,impute_median,mean,scale,coefficient
+max_credit_apply_amt,2000.0,3708.813462885154,4435.428746809324,0.020476655589362652
+hist_remit_cnt,2.0,3.2574404761904763,4.465357116416243,-0.04301406276296724
+hist_settled_cnt,2.0,3.2574404761904763,4.465357116416243,-0.04301406276296724
+hist_overdue_order_cnt,0.0,0.13567927170868346,0.4137535203049464,0.005843026775700361
+hist_max_overdue_days,0.0,-1.5749299719887955,3.439501390176089,0.01269953310922488
+hist_avg_remit_amt,1050.0,1745.351945584334,1832.1757765222574,-0.1502806446478411
+hist_total_remit_amt,2000.0,8736.776785714286,23844.599114780125,-0.05187487848467586
+hist_weighted_interest_rate,0.4282095890410959,0.41175598374393535,0.09052298943422384,-0.00178598395300831
+user_loan_tenure_days,18.0,52.38795518207283,95.86039986608331,-0.09142594304172652
+days_since_last_repaid,0.0,0.0,1.0,0.0
+hist_overdue_order_rate,0.0,0.03768101311920247,0.13932748260302738,0.031014087408055557
+previous_order_overdue_flag,0.0,0.03405112044817927,0.181360529455565,0.06489875849260429
+previous_remit_amt,1100.0,2249.5487570028013,2893.8625669892053,0.20135304074751187
+previous_interest_rate,0.45428571428571424,0.4200950330686726,0.11529553991176812,0.05802433716053298
+intercept,0.0,0.0,1.0,-0.5655415339997043
+</code></pre></details><details class="code"><summary>训练输出：训练期与时间外验证指标、P30/P60 阈值（CSV）</summary><pre><code>样本,样本量,逾期率,AUC,Brier,资质最好阈值_预测逾期风险P30,资质一般上限_预测逾期风险P60
+训练期_2025_01_09,8674,0.3645376988701868,0.5496119271483114,0.2295744666341459,0.35903574448267794,0.3709533057528467
+时间外验证_2025_10_12,2750,0.3610909090909091,0.5288195513156696,0.23039542429841342,0.35903574448267794,0.3709533057528467
 </code></pre></details>
 </main></body></html>
