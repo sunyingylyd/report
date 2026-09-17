@@ -265,101 +265,230 @@
 </table></section>
 <section id="sql"><h2>七、附录：完整可复现 PGSQL</h2>
 <p class="lead">按模块顺序执行。模块1生成临时表；模块2输出提单率；模块3输出期次/息费；模块4输出历史成功放款次数分层验证。</p>
-<details open><summary>&#27169;&#22359; 1&#65306;T0 &#26679;&#26412;&#12289;&#33719;&#39069;&#21435;&#37325;&#12289;&#26368;&#26089;&#25552;&#21333;</summary><pre>SET TIME ZONE 'America/Belize';
+<details open><summary>&#27169;&#22359; 1&#65306;T0 &#26679;&#26412;&#12289;&#33719;&#39069;&#21435;&#37325;&#12289;&#26368;&#26089;&#25552;&#21333;</summary><pre>/* 执行环境：PostgreSQL；本模块会创建后续模块所需的临时表。 */
+SET TIME ZONE 'America/Belize';
+
+/* 1. cohort：结清日期在 2026-01-01 至 2026-08-31 的正常结清放款订单。 */
 CREATE TEMP TABLE settled_orders AS
-SELECT user_id,serial_id,apply_time,repaid_time,repaid_date::date repaid_date
-FROM wangchuanliang.order_loan_f_v2_copy
-WHERE is_remit=1 AND loan_status_code=7 AND repaid_time&gt;TIMESTAMP '2000-01-01'
-AND repaid_date&gt;=DATE '2026-01-01' AND repaid_date&lt;=DATE '2026-08-31';
+SELECT o.user_id, o.serial_id, o.apply_time, o.repaid_time, o.repaid_date::date AS repaid_date
+FROM wangchuanliang.order_loan_f_v2_copy AS o
+WHERE o.is_remit = 1
+  AND o.loan_status_code = 7
+  AND o.repaid_time &gt; TIMESTAMP '2000-01-01 00:00:00'
+  AND o.repaid_date &gt;= DATE '2026-01-01'
+  AND o.repaid_date &lt;= DATE '2026-08-31';
+CREATE INDEX ON settled_orders (user_id, repaid_date, repaid_time);
+
+/* 2. 仅拉取 cohort 用户的订单，并以结清时点无其他在贷订单判定“结清 0 在贷”。 */
 CREATE TEMP TABLE candidate_users AS SELECT DISTINCT user_id FROM settled_orders;
+CREATE INDEX ON candidate_users (user_id);
 CREATE TEMP TABLE all_orders AS
-SELECT o.user_id,o.serial_id,o.apply_time,o.repaid_time,o.loan_status_code,o.is_remit,
-o.remit_amt,o.pre_amt,o.post_amt,o.total_term,o.product_no,o.loan_day
-FROM wangchuanliang.order_loan_f_v2_copy o JOIN candidate_users u USING(user_id);
+SELECT o.user_id, o.serial_id, o.apply_time, o.repaid_time, o.due_date,
+       o.remit_amt, o.repaid_amt, o.pre_amt, o.post_amt, o.total_term,
+       o.product_no, o.loan_day, o.loan_status_code, o.is_remit
+FROM wangchuanliang.order_loan_f_v2_copy AS o
+JOIN candidate_users AS u ON u.user_id = o.user_id;
+CREATE INDEX ON all_orders (user_id, apply_time);
+CREATE INDEX ON all_orders (user_id, repaid_time);
+
 CREATE TEMP TABLE clean_settles AS
-SELECT s.* FROM settled_orders s WHERE NOT EXISTS(
-SELECT 1 FROM all_orders o WHERE o.user_id=s.user_id AND o.serial_id&lt;&gt;s.serial_id
-AND o.apply_time&lt;s.repaid_time AND (o.loan_status_code IN(5,8)
-OR(o.loan_status_code=7 AND o.repaid_time&gt;s.repaid_time)));
-CREATE TEMP TABLE credit_days AS SELECT DISTINCT user_id,repaid_date-1 vir_date FROM clean_settles
-UNION SELECT DISTINCT user_id,repaid_date FROM clean_settles;
+SELECT s.*
+FROM settled_orders AS s
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM all_orders AS o
+  WHERE o.user_id = s.user_id
+    AND o.serial_id &lt;&gt; s.serial_id
+    AND o.apply_time &lt; s.repaid_time
+    AND (o.loan_status_code IN (5, 8)
+         OR (o.loan_status_code = 7 AND o.repaid_time &gt; s.repaid_time))
+);
+CREATE INDEX ON clean_settles (user_id, repaid_date, repaid_time);
+
+/* 3. 在结清当日或前一日读取获额通过记录；同一用户 20 秒内多次获额只保留 serial_id 最大的一笔。 */
+CREATE TEMP TABLE credit_days AS
+SELECT DISTINCT user_id, repaid_date - 1 AS vir_date FROM clean_settles
+UNION
+SELECT DISTINCT user_id, repaid_date AS vir_date FROM clean_settles;
+CREATE INDEX ON credit_days (user_id, vir_date);
+
 CREATE TEMP TABLE raw_credit_pass AS
-SELECT DISTINCT ON(v.user_id,v.serial_id) v.user_id,v.serial_id,v.vir_date::date vir_date,
-(TO_TIMESTAMP(v.vir_unix) AT TIME ZONE 'America/Belize') vir_time
-FROM wangchuanliang.order_vir_f_copy v JOIN credit_days d ON d.user_id=v.user_id AND d.vir_date=v.vir_date
-WHERE v.is_pass1=1 ORDER BY v.user_id,v.serial_id,v.vir_unix DESC;
+SELECT DISTINCT ON (v.user_id, v.serial_id)
+       v.user_id, v.serial_id, v.vir_date::date AS vir_date,
+       (TO_TIMESTAMP(v.vir_unix) AT TIME ZONE 'America/Belize') AS vir_time
+FROM wangchuanliang.order_vir_f_copy AS v
+JOIN credit_days AS d ON d.user_id = v.user_id AND d.vir_date = v.vir_date
+WHERE v.is_pass1 = 1
+ORDER BY v.user_id, v.serial_id, v.vir_unix DESC;
+CREATE INDEX ON raw_credit_pass (user_id, vir_time);
+
 CREATE TEMP TABLE dedup_credit_pass AS
-WITH a AS(SELECT *,LAG(vir_time) OVER(PARTITION BY user_id ORDER BY vir_time,serial_id) p FROM raw_credit_pass),
-b AS(SELECT *,SUM(CASE WHEN p IS NULL OR vir_time-p&gt;INTERVAL '20 seconds' THEN 1 ELSE 0 END)
-OVER(PARTITION BY user_id ORDER BY vir_time,serial_id) bid FROM a)
-SELECT user_id,serial_id,vir_date,vir_time FROM(
-SELECT *,ROW_NUMBER() OVER(PARTITION BY user_id,bid ORDER BY serial_id DESC) rn FROM b)x WHERE rn=1;
-CREATE TEMP TABLE t0_samples AS
-SELECT user_id,repaid_date,credit_vir_time FROM(
-SELECT c.user_id,c.repaid_date,cp.vir_time credit_vir_time,
-ROW_NUMBER() OVER(PARTITION BY c.user_id,c.repaid_date ORDER BY cp.vir_time,cp.serial_id DESC,c.repaid_time) rn
-FROM clean_settles c JOIN dedup_credit_pass cp ON cp.user_id=c.user_id
-AND cp.vir_date=c.repaid_date AND cp.vir_time&gt;=c.repaid_time)x WHERE rn=1;
-CREATE TEMP TABLE first_apply AS
-SELECT user_id,repaid_date,serial_id first_apply_serial_id,apply_time::date first_apply_date,
-remit_amt first_apply_remit_amt,pre_amt first_apply_pre_amt,post_amt first_apply_post_amt,total_term first_apply_total_term
-FROM(SELECT t.user_id,t.repaid_date,a.*,
-ROW_NUMBER() OVER(PARTITION BY t.user_id,t.repaid_date ORDER BY a.apply_time,a.serial_id) rn
-FROM t0_samples t JOIN all_orders a ON a.user_id=t.user_id AND a.apply_time&gt;=t.credit_vir_time
-AND a.apply_time&lt;t.credit_vir_time+INTERVAL '31 days')x WHERE rn=1;</pre></details>
-<details><summary>&#27169;&#22359; 2&#65306;&#26376;&#24230;&#25552;&#21333;&#29575;&#12289;&#32047;&#35745;&#25552;&#21333;&#29575;</summary><pre>WITH m AS(
-SELECT TO_CHAR(DATE_TRUNC('month',t.repaid_date),'YYYY-MM') month,COUNT(*) sample_cnt,
-COUNT(*) FILTER(WHERE f.first_apply_date=t.repaid_date) d0,
-COUNT(*) FILTER(WHERE f.first_apply_date-t.repaid_date BETWEEN 1 AND 7) d1_7,
-COUNT(*) FILTER(WHERE f.first_apply_date-t.repaid_date BETWEEN 8 AND 15) d8_15,
-COUNT(*) FILTER(WHERE f.first_apply_date-t.repaid_date BETWEEN 16 AND 30) d16_30
-FROM t0_samples t LEFT JOIN first_apply f USING(user_id,repaid_date) GROUP BY 1)
-SELECT month,sample_cnt,ROUND(d0::numeric/sample_cnt*100,2) day0_rate,
-ROUND(d1_7::numeric/sample_cnt*100,2) day1_7_rate,
-ROUND(d8_15::numeric/sample_cnt*100,2) day8_15_rate,
-ROUND(d16_30::numeric/sample_cnt*100,2) day16_30_rate,
-ROUND((d0+d1_7)::numeric/sample_cnt*100,2) day7_cum_rate,
-ROUND((d0+d1_7+d8_15)::numeric/sample_cnt*100,2) day15_cum_rate,
-ROUND((d0+d1_7+d8_15+d16_30)::numeric/sample_cnt*100,2) day30_cum_rate FROM m ORDER BY month;</pre></details>
-<details><summary>&#27169;&#22359; 3&#65306;&#24403;&#22825;&#35746;&#21333;&#25972;&#20307;/&#26399;&#27425;&#21152;&#26435;&#24687;&#36153;&#19982;&#26399;&#27425;&#32467;&#26500;</summary><pre>WITH d AS(
-SELECT t.repaid_date,f.* FROM t0_samples t JOIN first_apply f USING(user_id,repaid_date)
-WHERE f.first_apply_date=t.repaid_date), term AS(
-SELECT TO_CHAR(DATE_TRUNC('month',repaid_date),'YYYY-MM') month,first_apply_total_term total_term,
-COUNT(DISTINCT first_apply_serial_id) order_cnt,
-ROUND(COUNT(DISTINCT first_apply_serial_id)::numeric/
-SUM(COUNT(DISTINCT first_apply_serial_id)) OVER(PARTITION BY DATE_TRUNC('month',repaid_date))*100,2) term_share_pct,
-ROUND(SUM(COALESCE(first_apply_pre_amt,0)+COALESCE(first_apply_post_amt,0))::numeric/
-NULLIF(SUM(first_apply_remit_amt),0)*100,2) term_fee_pct FROM d GROUP BY 1,2,DATE_TRUNC('month',repaid_date)),
-overall AS(SELECT TO_CHAR(DATE_TRUNC('month',repaid_date),'YYYY-MM') month,
-ROUND(SUM(COALESCE(first_apply_pre_amt,0)+COALESCE(first_apply_post_amt,0))::numeric/
-NULLIF(SUM(first_apply_remit_amt),0)*100,2) overall_fee_pct FROM d GROUP BY 1)
-SELECT term.*,overall_fee_pct FROM term JOIN overall USING(month) ORDER BY month,total_term;</pre></details>
-<details><summary>模块 4：历史成功放款次数分层的息费与当天提单率</summary><pre>-- 先执行模块1。历史次数为当前T0获额时点之前的成功放款订单数；
--- 0次和1次均归入“贷款1次”分层，与报告历史口径保持一致。
-WITH history AS(
-  SELECT t.user_id,t.repaid_date,
-    CASE WHEN COUNT(DISTINCT h.serial_id) &lt;= 1 THEN '贷款1次'
-         WHEN COUNT(DISTINCT h.serial_id)=2 THEN '贷款2次'
-         WHEN COUNT(DISTINCT h.serial_id) BETWEEN 3 AND 5 THEN '贷款3-5次'
-         ELSE '贷款6次及以上' END loan_times_group
-  FROM t0_samples t LEFT JOIN all_orders h ON h.user_id=t.user_id
-    AND h.is_remit=1 AND h.apply_time&lt;t.credit_vir_time
-  GROUP BY 1,2
-), monthly AS(
-  SELECT TO_CHAR(DATE_TRUNC('month',t.repaid_date),'YYYY-MM') month,h.loan_times_group,
-    COUNT(*) sample_cnt,
-    ROUND(COUNT(*) FILTER(WHERE f.first_apply_date=t.repaid_date)::numeric/COUNT(*)*100,2) day0_rate_pct,
-    ROUND(SUM(COALESCE(f.first_apply_pre_amt,0)+COALESCE(f.first_apply_post_amt,0))
-      FILTER(WHERE f.first_apply_date=t.repaid_date AND f.first_apply_remit_amt&gt;0)::numeric
-      /NULLIF(SUM(f.first_apply_remit_amt) FILTER(WHERE f.first_apply_date=t.repaid_date AND f.first_apply_remit_amt&gt;0),0)*100,2) fee_rate_pct
-  FROM t0_samples t JOIN history h USING(user_id,repaid_date)
-  LEFT JOIN first_apply f USING(user_id,repaid_date)
-  GROUP BY 1,2
+WITH ordered AS (
+  SELECT *, LAG(vir_time) OVER (PARTITION BY user_id ORDER BY vir_time, serial_id) AS prev_vir_time
+  FROM raw_credit_pass
+), batched AS (
+  SELECT *, SUM(CASE WHEN prev_vir_time IS NULL
+                            OR vir_time - prev_vir_time &gt; INTERVAL '20 seconds'
+                       THEN 1 ELSE 0 END)
+            OVER (PARTITION BY user_id ORDER BY vir_time, serial_id ROWS UNBOUNDED PRECEDING) AS batch_id
+  FROM ordered
 )
-SELECT month,loan_times_group,sample_cnt,day0_rate_pct,fee_rate_pct,
-  ROUND(CORR(fee_rate_pct,day0_rate_pct) OVER(PARTITION BY loan_times_group)::numeric,2) monthly_corr
-FROM monthly
-ORDER BY month,CASE loan_times_group WHEN '贷款1次' THEN 1 WHEN '贷款2次' THEN 2 WHEN '贷款3-5次' THEN 3 ELSE 4 END;</pre></details></section>
+SELECT user_id, serial_id, vir_date, vir_time
+FROM (
+  SELECT *, ROW_NUMBER() OVER (PARTITION BY user_id, batch_id ORDER BY serial_id DESC) AS rn
+  FROM batched
+) AS x
+WHERE rn = 1;
+CREATE INDEX ON dedup_credit_pass (user_id, vir_date, vir_time);
+
+/* 4. 同一用户同一结清日仅保留结清后最早的有效获额。 */
+CREATE TEMP TABLE t0_samples AS
+SELECT user_id, repaid_date, credit_vir_time
+FROM (
+  SELECT c.user_id, c.repaid_date, cp.vir_time AS credit_vir_time,
+         ROW_NUMBER() OVER (
+           PARTITION BY c.user_id, c.repaid_date
+           ORDER BY cp.vir_time ASC, cp.serial_id DESC, c.repaid_time ASC
+         ) AS rn
+  FROM clean_settles AS c
+  JOIN dedup_credit_pass AS cp
+    ON cp.user_id = c.user_id
+   AND cp.vir_date = c.repaid_date
+   AND cp.vir_time &gt;= c.repaid_time
+) AS x
+WHERE rn = 1;
+CREATE INDEX ON t0_samples (user_id, repaid_date, credit_vir_time);
+
+/* 5. 每个 T0 样本只取获额后 30 天内最早的一次提单。 */
+CREATE TEMP TABLE first_apply AS
+SELECT user_id, repaid_date, first_apply_serial_id, first_apply_date,
+       first_apply_is_remit, first_apply_remit_amt, first_apply_pre_amt,
+       first_apply_post_amt, first_apply_total_term
+FROM (
+  SELECT t.user_id, t.repaid_date,
+         a.serial_id AS first_apply_serial_id,
+         a.apply_time::date AS first_apply_date,
+         a.is_remit AS first_apply_is_remit,
+         a.remit_amt AS first_apply_remit_amt,
+         a.pre_amt AS first_apply_pre_amt,
+         a.post_amt AS first_apply_post_amt,
+         a.total_term AS first_apply_total_term,
+         ROW_NUMBER() OVER (
+           PARTITION BY t.user_id, t.repaid_date
+           ORDER BY a.apply_time ASC, a.serial_id ASC
+         ) AS rn
+  FROM t0_samples AS t
+  JOIN all_orders AS a
+    ON a.user_id = t.user_id
+   AND a.apply_time &gt;= t.credit_vir_time
+   AND a.apply_time &lt; t.credit_vir_time + INTERVAL '31 days'
+) AS x
+WHERE rn = 1;
+CREATE INDEX ON first_apply (user_id, repaid_date);</pre></details>
+<details><summary>&#27169;&#22359; 2&#65306;&#26376;&#24230;&#25552;&#21333;&#29575;&#12289;&#32047;&#35745;&#25552;&#21333;&#29575;</summary><pre>/* 先执行模块 1。提单率均按获额通过的 T0 样本为分母；提单为最早提单。 */
+WITH monthly AS (
+  SELECT TO_CHAR(DATE_TRUNC('month', t.repaid_date), 'YYYY-MM') AS month,
+         COUNT(*) AS sample_cnt,
+         COUNT(*) FILTER (WHERE f.first_apply_date = t.repaid_date) AS day0_cnt,
+         COUNT(*) FILTER (WHERE f.first_apply_date - t.repaid_date BETWEEN 1 AND 7) AS day1_7_cnt,
+         COUNT(*) FILTER (WHERE f.first_apply_date - t.repaid_date BETWEEN 8 AND 15) AS day8_15_cnt,
+         COUNT(*) FILTER (WHERE f.first_apply_date - t.repaid_date BETWEEN 16 AND 30) AS day16_30_cnt
+  FROM t0_samples AS t
+  LEFT JOIN first_apply AS f USING (user_id, repaid_date)
+  GROUP BY 1
+), rates AS (
+  SELECT month, sample_cnt,
+         ROUND(day0_cnt::numeric / NULLIF(sample_cnt, 0) * 100, 2) AS day0_rate_pct,
+         ROUND(day1_7_cnt::numeric / NULLIF(sample_cnt, 0) * 100, 2) AS day1_7_rate_pct,
+         ROUND(day8_15_cnt::numeric / NULLIF(sample_cnt, 0) * 100, 2) AS day8_15_rate_pct,
+         ROUND(day16_30_cnt::numeric / NULLIF(sample_cnt, 0) * 100, 2) AS day16_30_rate_pct,
+         ROUND((day0_cnt + day1_7_cnt)::numeric / NULLIF(sample_cnt, 0) * 100, 2) AS day7_cum_rate_pct,
+         ROUND((day0_cnt + day1_7_cnt + day8_15_cnt)::numeric / NULLIF(sample_cnt, 0) * 100, 2) AS day15_cum_rate_pct,
+         ROUND((day0_cnt + day1_7_cnt + day8_15_cnt + day16_30_cnt)::numeric / NULLIF(sample_cnt, 0) * 100, 2) AS actual_day30_cum_rate_pct
+  FROM monthly
+)
+SELECT month, sample_cnt, day0_rate_pct, day1_7_rate_pct, day8_15_rate_pct, day16_30_rate_pct,
+       day7_cum_rate_pct, day15_cum_rate_pct, actual_day30_cum_rate_pct,
+       /* 8 月 cohort 的 30 天窗口未成熟；报告固定展示预测覆盖值。 */
+       CASE WHEN month = '2026-08' THEN 81.78 ELSE actual_day30_cum_rate_pct END AS report_day30_cum_rate_pct,
+       CASE WHEN month = '2026-08' THEN '预测（窗口未成熟）' ELSE '实际' END AS day30_data_type
+FROM rates
+ORDER BY month;</pre></details>
+<details><summary>&#27169;&#22359; 3&#65306;&#24403;&#22825;&#35746;&#21333;&#25972;&#20307;/&#26399;&#27425;&#21152;&#26435;&#24687;&#36153;&#19982;&#26399;&#27425;&#32467;&#26500;</summary><pre>/* 先执行模块 1。统计当天最早提单订单，不以是否成功放款作为筛选条件。
+   加权息费率 = SUM(pre_amt + post_amt) / SUM(remit_amt)。 */
+WITH day0_remitted AS (
+  SELECT t.repaid_date, f.*
+  FROM t0_samples AS t
+  JOIN first_apply AS f USING (user_id, repaid_date)
+  WHERE f.first_apply_date = t.repaid_date
+    AND f.first_apply_remit_amt &gt; 0
+), term_monthly AS (
+  SELECT DATE_TRUNC('month', repaid_date) AS month_date,
+         first_apply_total_term AS total_term,
+         COUNT(DISTINCT first_apply_serial_id) AS order_cnt,
+         ROUND(SUM(COALESCE(first_apply_pre_amt, 0) + COALESCE(first_apply_post_amt, 0))::numeric
+               / NULLIF(SUM(first_apply_remit_amt), 0) * 100, 2) AS term_fee_rate_pct
+  FROM day0_remitted
+  GROUP BY 1, 2
+), term_with_share AS (
+  SELECT TO_CHAR(month_date, 'YYYY-MM') AS month, total_term, order_cnt, term_fee_rate_pct,
+         ROUND(order_cnt::numeric / SUM(order_cnt) OVER (PARTITION BY month_date) * 100, 2) AS term_share_pct
+  FROM term_monthly
+), overall AS (
+  SELECT TO_CHAR(DATE_TRUNC('month', repaid_date), 'YYYY-MM') AS month,
+         ROUND(SUM(COALESCE(first_apply_pre_amt, 0) + COALESCE(first_apply_post_amt, 0))::numeric
+               / NULLIF(SUM(first_apply_remit_amt), 0) * 100, 2) AS overall_fee_rate_pct
+  FROM day0_remitted
+  GROUP BY 1
+)
+SELECT t.month, t.total_term, t.order_cnt, t.term_share_pct,
+       t.term_fee_rate_pct, o.overall_fee_rate_pct
+FROM term_with_share AS t
+JOIN overall AS o USING (month)
+ORDER BY t.month, t.total_term;</pre></details>
+<details><summary>模块 4：历史成功放款次数分层的息费与当天提单率</summary><pre>/* 先执行模块 1。
+   历史成功放款次数仅统计获额通过时点之前的 is_remit = 1 订单，故为 T0 决策前已知特征。
+   0 次和 1 次归入“贷款1次”，与报告的历史分层保持一致。 */
+WITH history AS (
+  SELECT t.user_id, t.repaid_date,
+         CASE WHEN COUNT(DISTINCT h.serial_id) &lt;= 1 THEN '贷款1次'
+              WHEN COUNT(DISTINCT h.serial_id) = 2 THEN '贷款2次'
+              WHEN COUNT(DISTINCT h.serial_id) BETWEEN 3 AND 5 THEN '贷款3-5次'
+              ELSE '贷款6次及以上' END AS loan_times_group
+  FROM t0_samples AS t
+  LEFT JOIN all_orders AS h
+    ON h.user_id = t.user_id
+   AND h.is_remit = 1
+   AND h.apply_time &lt; t.credit_vir_time
+  GROUP BY 1, 2
+), monthly AS (
+  SELECT TO_CHAR(DATE_TRUNC('month', t.repaid_date), 'YYYY-MM') AS month,
+         h.loan_times_group,
+         COUNT(*) AS sample_cnt,
+         ROUND(COUNT(*) FILTER (WHERE f.first_apply_date = t.repaid_date)::numeric
+               / NULLIF(COUNT(*), 0) * 100, 2) AS day0_rate_pct,
+         ROUND(SUM(COALESCE(f.first_apply_pre_amt, 0) + COALESCE(f.first_apply_post_amt, 0))
+                   FILTER (WHERE f.first_apply_date = t.repaid_date
+                             AND f.first_apply_is_remit = 1
+                             AND f.first_apply_remit_amt &gt; 0)::numeric
+               / NULLIF(SUM(f.first_apply_remit_amt)
+                   FILTER (WHERE f.first_apply_date = t.repaid_date
+                             AND f.first_apply_is_remit = 1
+                             AND f.first_apply_remit_amt &gt; 0), 0) * 100, 2) AS fee_rate_pct
+  FROM t0_samples AS t
+  JOIN history AS h USING (user_id, repaid_date)
+  LEFT JOIN first_apply AS f USING (user_id, repaid_date)
+  GROUP BY 1, 2
+), with_corr AS (
+  SELECT *, ROUND(CORR(fee_rate_pct, day0_rate_pct)
+                         OVER (PARTITION BY loan_times_group)::numeric, 2) AS monthly_corr
+  FROM monthly
+)
+SELECT month, loan_times_group, sample_cnt, day0_rate_pct, fee_rate_pct, monthly_corr
+FROM with_corr
+ORDER BY month,
+         CASE loan_times_group WHEN '贷款1次' THEN 1 WHEN '贷款2次' THEN 2
+                               WHEN '贷款3-5次' THEN 3 ELSE 4 END;</pre></details></section>
 <footer class="footer">&#25253;&#21578;&#20026;&#36235;&#21183;&#19982;&#32467;&#26500;&#24615;&#35777;&#25454;&#65307;&#22914;&#38656;&#35777;&#26126;&#20215;&#26684;&#23545;&#25552;&#21333;&#29575;&#30340;&#22240;&#26524;&#24433;&#21709;&#65292;&#39035;&#24341;&#20837;&#33719;&#39069;&#26102;&#21487;&#35265;&#25253;&#20215;&#24182;&#36827;&#34892;&#25511;&#21046;&#21464;&#37327;&#25110;&#23454;&#39564;&#20998;&#26512;&#12290;</footer></main></body>
 <script>
 (() => {
