@@ -1,0 +1,873 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>结清未提单召回：7天/3天30%减息券实验与分群发券方案</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#071b2f;--p:#0c2944;--line:#2a5c7e;--text:#eff8ff;--muted:#aac5da;--cy:#43c7e7;--gr:#64dcae;--am:#ffc26b;--pk:#f68ab0;--vio:#b49aff}
+*{box-sizing:border-box}body{margin:0;background:#06192b;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}
+.wrap{max-width:1480px;margin:auto;padding:32px 36px 80px}
+.hero{text-align:center;padding:28px 12px 22px;border-bottom:1px solid var(--line)}
+.kicker{color:var(--cy);font-size:13px;letter-spacing:2px;font-weight:700}
+.hero h1{font-size:28px;line-height:1.35;margin:10px 0}
+.hero-meta{display:inline-block;text-align:left;margin-top:12px;line-height:1.75;color:var(--muted);font-size:14px}
+h2{font-size:24px;margin:44px 0 10px}h3{font-size:17px;margin:22px 0 8px}
+.desc,.sub{color:var(--muted);margin:0 0 12px;line-height:1.75;font-size:14px}
+.grid{display:grid;gap:14px}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.card,.chart{background:rgba(10,41,68,.95);border:1px solid var(--line);border-radius:14px;padding:16px}
+.label{color:var(--muted);font-size:12px}.num{font-size:22px;font-weight:800;margin:4px 0 2px;line-height:1.2;color:var(--cy)}
+.num.pink{color:var(--pk)}.num.green{color:var(--gr)}.num.amber{color:var(--am)}
+.box{height:300px;position:relative}.box.tall{height:360px}
+.chart h3{margin:0 0 4px;font-size:15px}.chart p{font-size:12px;color:var(--muted);margin:0 0 10px}
+.callout{background:#0a2a45;border:1px solid #2a5c7e;border-left:4px solid #43c7e7;border-radius:10px;padding:14px 18px;margin:14px 0;line-height:1.75;font-size:14px}
+.callout.gold{border-left-color:#ffc26b}.callout.red{border-left-color:#f68ab0}.callout.green{border-left-color:#64dcae}
+.callout .ch{font-weight:800;margin-bottom:8px}
+.table{overflow-x:auto;margin:12px 0}table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:8px 10px;border-bottom:1px solid rgba(42,92,126,.45);text-align:right;white-space:nowrap}
+th{color:var(--muted);background:rgba(12,48,78,.65);font-weight:600}th:first-child,td:first-child{text-align:left}
+.bad{color:var(--pk)}.good{color:var(--gr)}
+.flow{display:grid;grid-template-columns:40px 1fr;gap:8px 12px;margin:16px 0}
+.flow .n{width:28px;height:28px;border-radius:50%;background:#123d5c;color:var(--cy);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px}
+.flow p{margin:0;line-height:1.7;font-size:14px;color:var(--muted)}
+.flow p b{color:var(--text)}
+details{margin:14px 0}summary{cursor:pointer;color:var(--cy);font-size:14px;padding:6px 0;font-weight:600}
+pre.sql{background:#081726;border:1px solid var(--line);border-radius:14px;padding:18px;overflow:auto;max-height:820px;font-size:11.5px;line-height:1.55;color:#bfe0f2;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;white-space:pre;tab-size:2}
+.foot{color:#7fa6c2;font-size:12.5px;margin-top:50px;border-top:1px solid var(--line);padding-top:16px;line-height:1.9}
+@media(max-width:900px){.g2,.g3,.g4{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<header class="hero">
+<div class="kicker">NO_APPLY 召回实验 · 2026-07-16～08-23 · 排除 0814</div>
+<h1>7 天 / 3 天 30% 减息券：提单率、到期盈利与分群发券方案</h1>
+<div class="hero-meta">
+样本：wangchuanliang.no_apply_*_30pct 共 14 张表、组内去重 4,528 人；订单表 order_loan_f_v2_copy<br>
+第一组 0716–0719：实验 7 天 30%，对照不发券 · 第二组 0730–0802：实验 7 天 30%，对照 3 天 30%<br>
+第三组 0813/0815/0816/0821–0823：实验 3 天 30%，对照不发券（0814 已剔除）<br>
+召回当天发券；7 天窗 = 触达日～+6，3 天窗 = 触达日～+2。盈利只用当前到期放款单：(Σrepaid_amt−Σremit_amt)/Σremit_amt
+</div>
+</header>
+
+<section class="grid g4" style="margin-top:18px">
+<article class="card"><div class="label">样本用户</div><div class="num">4,528</div><div class="sub">G1 1,317 · G2 1,658 · G3 1,553</div></article>
+<article class="card"><div class="label">7天券窗内提单增量</div><div class="num green">+7.5pp</div><div class="sub">第一组对齐 7 天：32.73% vs 25.27%</div></article>
+<article class="card"><div class="label">7天 vs 3天 到期盈利差</div><div class="num pink">−13.6pp</div><div class="sub">第二组 7.87% vs 21.48%，直接对打</div></article>
+<article class="card"><div class="label">最该发券的格子</div><div class="num amber">+10.1pp</div><div class="sub">额&gt;5k 且召回前无进件，利润未更差</div></article>
+</section>
+
+<div class="callout"><div class="ch">结论先行</div>
+发 30% 减息券能把<strong>券有效期内</strong>的提单率抬上去：7 天大约 +7.5pp，3 天大约 +4.2pp。全程意向治疗增量只有 +1.6～2.5pp，过期后两边提单率已经接近，券主要是把申请提前。<br>
+到期盈利率上，<strong>7 天 30% 明显不划算</strong>：对不发券少 6.7pp，对 3 天 30% 少 13.6pp。拖后腿的不是「小单用券」，而是 7 天窗里的零还款、大额用券单，以及第一组用完券之后继续借的订单。<strong>3 天 30% 适合做默认</strong>；高额、高用信、强意图用户应收到 20% 或更短窗口。7 天 30% 不要再当常规召回。
+</div>
+
+<h2>一、实验设计与分析逻辑</h2>
+<p class="desc">三组实验发生在不同周，对照券也不一样，所以全程提单率不能跨组比绝对水平（第三组观察期更短），只能组内比实验对照，再用「对齐券窗」看用券那几天。</p>
+<div class="flow">
+<div class="n">1</div><p><b>谁进样本。</b>表名 no_apply_结清日_触达日_30pct。结清后约第 5 天进名单（churn_days 全是 5）。组内按 user_id 去重，取最早触达日。</p>
+<div class="n">2</div><p><b>提单算什么。</b>触达日及之后任意一笔提单即算提单用户，不卡到期、不卡放款。多笔只计 1 人；次数用全部订单 / 去重用户。第一笔按 apply_time 排序。</p>
+<div class="n">3</div><p><b>用券怎么认。</b>订单表 loan_coupon_amt 全为 0，不能核销。按时间窗：有券的臂在有效期内的提单记用券，过期记非用券。对照不发券则没有用券窗，比较时另给「对齐天数」。</p>
+<div class="n">4</div><p><b>盈利怎么算。</b>只统计 is_remit=1 且 is_due=1 的放款单，金额用订单表 repaid_amt、remit_amt。未到期单不进盈利，所以第三组绝对值偏低。</p>
+<div class="n">5</div><p><b>特征怎么用。</b>名单上的字段是触达当时快照。先看 ITT（发券 vs 对照），再看分箱异质性，最后落成发券规则。用券用户是自选择，不能单独当因果。</p>
+</div>
+
+<div class="table"><table>
+<thead><tr><th>组别</th><th>结清日</th><th>实验</th><th>对照</th><th>用户</th><th>实验/对照</th></tr></thead>
+<tbody>
+<tr><td>第一组</td><td>7/16–7/19</td><td>7 天 30%</td><td>不发券</td><td>1,317</td><td>660 / 657</td></tr>
+<tr><td>第二组</td><td>7/30–8/02</td><td>7 天 30%</td><td>3 天 30%</td><td>1,658</td><td>831 / 827</td></tr>
+<tr><td>第三组</td><td>8/13 等 6 批（无 8/14）</td><td>3 天 30%</td><td>不发券</td><td>1,553</td><td>778 / 775</td></tr>
+</tbody></table></div>
+
+<h2>二、意向治疗：发券有没有抬提单、有没有伤盈利</h2>
+<p class="desc">下面是组内实验 vs 对照，分母是全部召回用户。平均次数只在「提过单 / 放过款」的用户上平均。</p>
+<div class="grid g2">
+<div class="chart"><h3>图1 全程提单率：实验 vs 对照</h3><p>三组实验都略高，增量 1.6～2.5pp，方向稳定、幅度不大</p><div class="box"><canvas id="c1"></canvas></div></div>
+<div class="chart"><h3>图2 到期盈利率：实验 vs 对照</h3><p>第一、二组实验明显更低；第三组到期样本少，实验略高但不稳</p><div class="box"><canvas id="c2"></canvas></div></div>
+</div>
+<div class="table"><table>
+<thead><tr><th>组别</th><th>样本</th><th>用户</th><th>提单用户</th><th>提单率</th><th>提单订单</th><th>平均提单</th><th>放款用户/订单</th><th>平均放款</th><th>到期单/用户</th><th>Σrepaid</th><th>Σremit</th><th>盈利率</th></tr></thead>
+<tbody>
+<tr><td>第一组 7天 vs 不发</td><td>总体</td><td>1,317</td><td>814</td><td>61.81%</td><td>1,808</td><td>2.221</td><td>721 / 1,543</td><td>2.140</td><td>1,068 / 642</td><td>4,005,104</td><td>3,457,573</td><td>15.84%</td></tr>
+<tr><td></td><td>实验</td><td>660</td><td>416</td><td class="good">63.03%</td><td>938</td><td>2.255</td><td>370 / 800</td><td>2.162</td><td>568 / 335</td><td>1,992,239</td><td>1,769,714</td><td class="bad">12.57%</td></tr>
+<tr><td></td><td>对照</td><td>657</td><td>398</td><td>60.58%</td><td>870</td><td>2.186</td><td>351 / 743</td><td>2.117</td><td>500 / 307</td><td>2,012,865</td><td>1,687,859</td><td>19.26%</td></tr>
+<tr><td>第二组 7天 vs 3天</td><td>总体</td><td>1,658</td><td>982</td><td>59.23%</td><td>2,018</td><td>2.055</td><td>859 / 1,656</td><td>1.928</td><td>991 / 694</td><td>2,649,067</td><td>2,318,949</td><td>14.24%</td></tr>
+<tr><td></td><td>实验</td><td>831</td><td>500</td><td class="good">60.17%</td><td>998</td><td>1.996</td><td>431 / 819</td><td>1.900</td><td>489 / 353</td><td>1,331,788</td><td>1,234,630</td><td class="bad">7.87%</td></tr>
+<tr><td></td><td>对照</td><td>827</td><td>482</td><td>58.28%</td><td>1,020</td><td>2.116</td><td>428 / 837</td><td>1.956</td><td>502 / 341</td><td>1,317,279</td><td>1,084,319</td><td>21.48%</td></tr>
+<tr><td>第三组 3天 vs 不发</td><td>总体</td><td>1,553</td><td>800</td><td>51.51%</td><td>1,213</td><td>1.516</td><td>784 / 1,153</td><td>1.471</td><td>332 / 299</td><td>919,245</td><td>891,426</td><td>3.12%</td></tr>
+<tr><td></td><td>实验</td><td>778</td><td>407</td><td class="good">52.31%</td><td>630</td><td>1.548</td><td>401 / 610</td><td>1.521</td><td>177 / 158</td><td>558,859</td><td>535,408</td><td>4.38%</td></tr>
+<tr><td></td><td>对照</td><td>775</td><td>393</td><td>50.71%</td><td>583</td><td>1.483</td><td>383 / 543</td><td>1.418</td><td>155 / 141</td><td>360,386</td><td>356,018</td><td>1.23%</td></tr>
+</tbody></table></div>
+<div class="callout gold"><div class="ch">这一段读什么</div>
+因果上：<strong>券提高提单、降低盈利</strong>，只有第三组盈利没被打穿。第二组是唯一「7 天对 3 天」的对打，7 天只多 1.89pp 提单，盈利少 13.61pp，这是后面「不要默认 7 天 30%」的主证据。平均提单/放款次数实验对照差距很小（约 0.05～0.12 次），券几乎不改变人均复借深度，改变的是谁在窗口里进来、进来的单多重。</div>
+
+<div class="grid g2">
+<div class="chart"><h3>图3 平均提单次数与平均放款次数</h3><p>分母分别是提单用户、放款用户。第三组次数低，主因观察期短</p><div class="box"><canvas id="c3"></canvas></div></div>
+<div class="chart"><h3>图4 实验相对对照：提单增量 vs 盈利增量</h3><p>落在右下象限=转化换利润。只有第三组落在右上，到期单仅 332 笔</p><div class="box"><canvas id="c4"></canvas></div></div>
+</div>
+
+<h2>三、把窗口切开：用券那几天 vs 过期之后</h2>
+<p class="desc">同一人可以窗内提一笔、窗外再提，所以窗内用户 + 窗外用户会大于总提单用户。不发券的对照没有用券窗，表中「对齐窗」用与实验相同的 7 天或 3 天，只为可比，不改变用券定义。</p>
+<div class="grid g2">
+<div class="chart"><h3>图5 对齐窗口内提单率</h3><p>7 天窗 +7.46pp；3 天窗 +4.19pp。第二组对照只有 3 天券，窗更短</p><div class="box"><canvas id="c5"></canvas></div></div>
+<div class="chart"><h3>图6 窗内到期盈利率</h3><p>用券单费比降到约 41%，但第二、三组窗内盈利仍低于对照同期</p><div class="box"><canvas id="c6"></canvas></div></div>
+</div>
+<div class="table"><table>
+<thead><tr><th>组别</th><th>样本</th><th>窗口</th><th>窗内/后提单率</th><th>平均提单</th><th>平均放款</th><th>到期盈利率</th><th>到期件均放款</th><th>费比</th></tr></thead>
+<tbody>
+<tr><td rowspan="4">第一组</td><td>实验</td><td>用券 7 天</td><td class="good">32.73%（216/660）</td><td>1.088</td><td>1.042</td><td>19.96%</td><td>2,731</td><td>41.4%</td></tr>
+<tr><td>对照</td><td>同期 7 天、无券</td><td>25.27%（166/657）</td><td>1.054</td><td>1.034</td><td>22.29%</td><td>2,667</td><td>51.7%</td></tr>
+<tr><td>实验</td><td>7 天后</td><td>51.06%（337/660）</td><td>2.086</td><td>2.027</td><td class="bad">9.44%</td><td>3,314</td><td>52.0%</td></tr>
+<tr><td>对照</td><td>7 天后仍无券</td><td>50.38%（331/657）</td><td>2.100</td><td>2.031</td><td>18.38%</td><td>3,657</td><td>53.9%</td></tr>
+<tr><td rowspan="4">第二组</td><td>实验</td><td>用券 7 天</td><td class="good">32.37%（269/831）</td><td>1.112</td><td>1.055</td><td class="bad">3.52%</td><td>2,502</td><td>41.3%</td></tr>
+<tr><td>对照</td><td>用券 3 天</td><td>18.50%（153/827）</td><td>1.013</td><td>1.000</td><td>18.68%</td><td>2,287</td><td>39.8%</td></tr>
+<tr><td>实验</td><td>7 天后</td><td>45.97%（382/831）</td><td>1.830</td><td>1.727</td><td>11.76%</td><td>2,546</td><td>53.9%</td></tr>
+<tr><td>对照</td><td>3 天后</td><td>52.72%（436/827）</td><td>1.984</td><td>1.818</td><td>22.58%</td><td>2,114</td><td>54.5%</td></tr>
+<tr><td rowspan="4">第三组</td><td>实验</td><td>用券 3 天</td><td class="good">17.87%（139/778）</td><td>1.000</td><td>1.000</td><td class="bad">−1.65%</td><td>3,699</td><td>43.0%</td></tr>
+<tr><td>对照</td><td>同期 3 天、无券</td><td>13.68%（106/775）</td><td>1.000</td><td>1.000</td><td>5.95%</td><td>2,070</td><td>55.0%</td></tr>
+<tr><td>实验</td><td>3 天后</td><td>43.19%（336/778）</td><td>1.461</td><td>1.435</td><td>14.01%</td><td>2,343</td><td>50.3%</td></tr>
+<tr><td>对照</td><td>3 天后仍无券</td><td>44.00%（341/775）</td><td>1.399</td><td>1.330</td><td>−1.94%</td><td>2,479</td><td>51.7%</td></tr>
+</tbody></table></div>
+<div class="callout"><div class="ch">窗口对比的结论</div>
+对齐天数后，<strong>7 天 30% 转化强、3 天 30% 次之</strong>。第一组窗内用券单盈利 19.96%，对照同期 22.29%，减息基本被更好的还款抵掉（零还款金额 8% vs 16%）。第二组同样是用券，7 天窗盈利只有 3.52%，对照 3 天窗 18.68%，差在还款而不是标价（两边费比都约 40%）。第三组窗内实验件均 3,699、对照 2,070，大额被券吸引进来后盈利转负。过期后提单率实验对照已经贴在一起，<strong>不要指望 7 天券继续抬后期转化</strong>。</div>
+
+<h2>四、用券订单、用券用户：谁在拖盈利率</h2>
+<p class="desc">「用券用户」= 实验组在有效期内至少提过一笔。他们名下窗外的单也算进用户级盈利。对照 3 天券用户不并进这一列。</p>
+<div class="grid g2">
+<div class="chart"><h3>图7 到期单：用券 vs 非用券 盈利率</h3><p>第一组用券单并不差；第二组 7 天用券单才是坑</p><div class="box"><canvas id="c7"></canvas></div></div>
+<div class="chart"><h3>图8 用券到期单零还款金额占比</h3><p>第二组实验用券单 20.3%，对照 3 天用券单只有 8.4%</p><div class="box"><canvas id="c8"></canvas></div></div>
+</div>
+<div class="table"><table>
+<thead><tr><th>组</th><th>订单</th><th>到期单</th><th>件均放款</th><th>费比</th><th>盈利率</th><th>零还款金额占比</th></tr></thead>
+<tbody>
+<tr><td>一</td><td>实验用券</td><td>193</td><td>2,731</td><td>41.4%</td><td class="good">20.0%</td><td>8.0%</td></tr>
+<tr><td>一</td><td>实验非用券</td><td>375</td><td>3,314</td><td>52.0%</td><td class="bad">9.4%</td><td>19.3%</td></tr>
+<tr><td>一</td><td>对照全程无券</td><td>500</td><td>3,376</td><td>53.4%</td><td>19.3%</td><td>13.5%</td></tr>
+<tr><td>二</td><td>实验用券（7天）</td><td>233</td><td>2,502</td><td>41.3%</td><td class="bad">3.5%</td><td class="bad">20.3%</td></tr>
+<tr><td>二</td><td>对照用券（3天）</td><td>133</td><td>2,287</td><td>39.8%</td><td>18.7%</td><td>8.4%</td></tr>
+<tr><td>二</td><td>实验非用券</td><td>256</td><td>2,546</td><td>53.9%</td><td>11.8%</td><td>19.4%</td></tr>
+<tr><td>三</td><td>实验用券（3天）</td><td>89</td><td class="bad">3,699</td><td>43.0%</td><td class="bad">−1.6%</td><td>9.4%</td></tr>
+<tr><td>三</td><td>实验非用券</td><td>88</td><td>2,343</td><td>50.3%</td><td>14.0%</td><td>16.4%</td></tr>
+<tr><td>三</td><td>对照对齐 3 天</td><td>69</td><td>2,070</td><td>55.0%</td><td>6.0%</td><td>24.3%</td></tr>
+</tbody></table></div>
+<div class="table"><table>
+<thead><tr><th>组</th><th>实验组人群</th><th>人数结构</th><th>其全部到期单</th><th>用户级盈利</th><th>拖后腿机制</th></tr></thead>
+<tbody>
+<tr><td>一</td><td>用券用户</td><td>216/660 曾窗内提</td><td>378 单 / 193 人</td><td>15.0%</td><td>窗内单 20.0% 还行；窗外续借件均 4,051，盈利 11.5%</td></tr>
+<tr><td>一</td><td>未用券、后来才提</td><td>200 人</td><td>190 单 / 142 人</td><td class="bad">6.3%</td><td>零还款金额 24.7%，把整组从 20% 拉到 12.6%</td></tr>
+<tr><td>二</td><td>用券用户</td><td>269/831</td><td>332 单 / 221 人</td><td class="bad">5.1%</td><td>用券单本身 3.5%；最差 10% 单拿走放款额 24%</td></tr>
+<tr><td>二</td><td>未用券、后来才提</td><td>231 人</td><td>157 单</td><td>14.8%</td><td>这批人不是主因</td></tr>
+<tr><td>三</td><td>用券用户</td><td>139/778</td><td>104 单 / 89 人</td><td class="bad">−2.5%</td><td>窗内件均 3,699，1.5–3k 档盈利 −20%，&gt;10k 为 −8%</td></tr>
+<tr><td>三</td><td>未用券、后来才提</td><td>268 人</td><td>73 单</td><td>19.5%</td><td>质量更好，说明 3 天券主要筛进了大额</td></tr>
+</tbody></table></div>
+<div class="callout red"><div class="ch">亏损单贡献（实验组用券到期单）</div>
+第一组 193 单盈利 19.96%，去掉最差 10% 后约 36%；未还款 23 单、金额只占 8%，有还款单盈利 30.3%。<br>
+第二组 233 单盈利 3.52%，<strong>43 笔零还款占放款额 20%</strong>，件均 2,754；&gt;1 万的 7 笔盈利 −18.6%。去掉最差 10% 后其余约 31%。<br>
+第三组 89 单盈利 −1.65%，最差 10% 占放款额 24%；有还款单也只有 +8.6%，减息之后利润很薄。
+</div>
+
+<h2>五、召回时特征：哪些人提单高、哪些人发券会亏</h2>
+<p class="desc">特征来自 no_apply 原表，是触达当时的用户画像。churn_days 全为 5，coupons_page_cnt / coupons_confirm_cnt 全为 0，这三项不能用于分群。下面 ITT 把三组合在一起看方向，分母是箱内实验/对照用户。</p>
+<div class="grid g2">
+<div class="chart"><h3>图9 最近获额 last_vir_amt：提单率</h3><p>额度越大，对照越不提；实验增量也越大（&gt;10k 为 +7.9pp）</p><div class="box"><canvas id="c9"></canvas></div></div>
+<div class="chart"><h3>图10 最近获额：到期盈利率</h3><p>2–5k 实验 3.0% vs 对照 22.5%；&gt;10k 实验 13.2% vs 25.5%</p><div class="box"><canvas id="c10"></canvas></div></div>
+</div>
+<div class="table"><table>
+<thead><tr><th>last_vir_amt</th><th>实验用户</th><th>对照用户</th><th>实验提单率</th><th>对照提单率</th><th>Lift</th><th>实验盈利</th><th>对照盈利</th><th>盈利差</th><th>到期用户 T/C</th></tr></thead>
+<tbody>
+<tr><td>≤2k</td><td>1,208</td><td>1,208</td><td>60.43%</td><td>60.26%</td><td>+0.17pp</td><td>10.31%</td><td>9.83%</td><td class="good">+0.48pp</td><td>468 / 456</td></tr>
+<tr><td>2–5k</td><td>460</td><td>477</td><td>58.48%</td><td>55.77%</td><td>+2.71pp</td><td class="bad">2.97%</td><td>22.48%</td><td class="bad">−19.51pp</td><td>182 / 167</td></tr>
+<tr><td>5–10k</td><td>381</td><td>349</td><td>53.28%</td><td>49.57%</td><td>+3.71pp</td><td>10.92%</td><td>11.29%</td><td>−0.37pp</td><td>138 / 103</td></tr>
+<tr><td>&gt;10k</td><td>220</td><td>225</td><td>55.00%</td><td>47.11%</td><td class="good">+7.89pp</td><td>13.16%</td><td>25.52%</td><td class="bad">−12.36pp</td><td>58 / 63</td></tr>
+</tbody></table></div>
+<p class="desc">和提单最相关的是召回前几天是否还在产品里：活跃天数相关 0.214，进首页 0.209，看计划 0.178，距上次活跃 −0.172。额度、ALS 与提单负相关（越大越不提）。</p>
+<div class="grid g2">
+<div class="chart"><h3>图11 召回前有无进件行为</h3><p>有进件对照已 66.8% 会提，券只 +1.7pp，盈利少 11.0pp</p><div class="box"><canvas id="c11"></canvas></div></div>
+<div class="chart"><h3>图12 上次放款用信 last_remit_utilization</h3><p>用信&gt;1 的人本来就会提（对照 59.6%），发券后盈利少 13.1pp</p><div class="box"><canvas id="c12"></canvas></div></div>
+</div>
+<div class="table"><table>
+<thead><tr><th>特征分箱</th><th>nT / nC</th><th>实验提单</th><th>对照提单</th><th>Lift</th><th>实验盈利</th><th>对照盈利</th><th>盈利差</th></tr></thead>
+<tbody>
+<tr><td>无进件（首页+改额均为 0）</td><td>1,180 / 1,160</td><td>48.90%</td><td>46.47%</td><td>+2.43pp</td><td>10.32%</td><td>12.16%</td><td>−1.84pp</td></tr>
+<tr><td>有进件</td><td>1,089 / 1,099</td><td>68.50%</td><td>66.79%</td><td>+1.72pp</td><td>9.42%</td><td>20.38%</td><td class="bad">−10.96pp</td></tr>
+<tr><td>进首页 0 次</td><td>1,180 / 1,160</td><td>48.90%</td><td>46.47%</td><td>+2.43pp</td><td>10.32%</td><td>12.16%</td><td>−1.84pp</td></tr>
+<tr><td>进首页 1 次</td><td>519 / 484</td><td>61.85%</td><td>64.88%</td><td>−3.03pp</td><td>11.74%</td><td>26.63%</td><td class="bad">−14.89pp</td></tr>
+<tr><td>进首页 2–3 次</td><td>473 / 526</td><td>72.73%</td><td>67.30%</td><td>+5.43pp</td><td>6.67%</td><td>16.39%</td><td>−9.72pp</td></tr>
+<tr><td>进首页 &gt;3 次</td><td>97 / 89</td><td>83.51%</td><td>74.16%</td><td>+9.35pp</td><td>11.84%</td><td>12.00%</td><td>−0.16pp</td></tr>
+<tr><td>上次用信 ≤0.8</td><td>543 / 528</td><td>57.46%</td><td>54.17%</td><td>+3.29pp</td><td>11.88%</td><td>15.77%</td><td>−3.89pp</td></tr>
+<tr><td>上次用信 0.8–1</td><td>951 / 977</td><td>57.20%</td><td>55.07%</td><td>+2.14pp</td><td>13.58%</td><td>20.90%</td><td>−7.32pp</td></tr>
+<tr><td>上次用信 &gt;1</td><td>775 / 754</td><td>60.26%</td><td>59.55%</td><td>+0.71pp</td><td class="bad">4.09%</td><td>17.17%</td><td class="bad">−13.08pp</td></tr>
+</tbody></table></div>
+<h3>交叉：额度 × 意图（最能指导发券）</h3>
+<div class="chart"><h3>图13 四个格子的提单 Lift 与盈利差</h3><p>左轴提单增量（pp），右轴盈利差（pp）。右上=又转又赚，目前只有「大额无进件」接近</p><div class="box tall"><canvas id="c13"></canvas></div></div>
+<div class="table"><table>
+<thead><tr><th>格子</th><th>人数</th><th>实验提单</th><th>对照提单</th><th>Lift</th><th>实验盈利</th><th>对照盈利</th><th>盈利差</th></tr></thead>
+<tbody>
+<tr><td>额≤5k · 无进件</td><td>1,812</td><td>49.72%</td><td>49.39%</td><td>+0.33pp</td><td>2.31%</td><td>10.29%</td><td>−7.98pp</td></tr>
+<tr><td>额≤5k · 有进件</td><td>1,541</td><td>72.01%</td><td>70.13%</td><td>+1.88pp</td><td>9.01%</td><td>19.02%</td><td>−10.01pp</td></tr>
+<tr><td class="good">额&gt;5k · 无进件</td><td>528</td><td>46.15%</td><td>36.08%</td><td class="good">+10.08pp</td><td>17.84%</td><td>13.95%</td><td class="good">+3.89pp</td></tr>
+<tr><td>额&gt;5k · 有进件</td><td>647</td><td>60.37%</td><td>58.62%</td><td>+1.75pp</td><td>9.68%</td><td>21.30%</td><td>−11.62pp</td></tr>
+</tbody></table></div>
+<div class="callout green"><div class="ch">特征分析落到一句话</div>
+券真正买到的增量，集中在<strong>额度大、召回前已经不进件</strong>的人（+10.1pp，盈利还略好）。小额用户发不发 30% 提单几乎一样。已经在逛首页、改额度的人，对照也会提，发 30% 等于给折扣、利润少约 10～15pp。上次用信打满的人同理。2–5k 这一档发 30% 盈利从 22.5% 掉到 3.0%，是金额维度上最伤的一段。
+</div>
+<div class="table"><table>
+<thead><tr><th>组内 last_vir_amt</th><th>G1 Lift / 盈利差</th><th>G2 Lift / 盈利差（7天 vs 3天）</th><th>G3 Lift / 盈利差</th></tr></thead>
+<tbody>
+<tr><td>≤2k</td><td>+2.4pp / +7.5pp（14.1% vs 6.6%）</td><td>+1.3pp / −6.0pp</td><td>−3.7pp / −3.8pp</td></tr>
+<tr><td>2–5k</td><td>+5.9pp / <span class="bad">−21.5pp</span></td><td>−1.2pp / <span class="bad">−21.6pp</span></td><td>+4.0pp / +10.9pp</td></tr>
+<tr><td>5–10k</td><td>+4.2pp / −5.0pp</td><td>+6.1pp / −7.5pp</td><td>+1.4pp / +34.5pp（对照到期很少）</td></tr>
+<tr><td>&gt;10k</td><td>−8.0pp / −3.1pp</td><td>+4.3pp / −15.5pp</td><td><span class="good">+20.3pp</span> / <span class="bad">−32.2pp</span></td></tr>
+</tbody></table></div>
+<p class="desc">第三组 &gt;10k：实验提单 57.6% vs 对照 37.2%，但盈利 −2.1% vs 30.1%。大额 3 天 30% 能拉转化，代价是利润。第二组同一档 7 天对 3 天，转化只多 4.3pp，盈利少 15.5pp，说明大额更不该拉长有效期。</p>
+
+<h2>六、发券方案：3 天为主，按特征切换 30% / 20%</h2>
+<p class="desc">20% 没有实验，是相对「30% 已经在减利润」收一档，上线需留对照。7 天 30% 有对打证据，不作为默认。</p>
+<div class="table"><table>
+<thead><tr><th>优先级</th><th>条件（原表字段）</th><th>召回当天发</th><th>3 天仍未提</th><th>依据</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>last_vir_amt &gt; 10000，或额&gt;5000 且 max_over_due&gt;0</td><td><b>3 天 20%</b>，可加用券限额</td><td>不补 30%</td><td>&gt;10k 转化 +7.9pp，盈利 −12.4pp；7 天更伤</td></tr>
+<tr><td>2</td><td>newpage+amount_selection=0 且 last_vir_amt&gt;5000</td><td><b>3 天 30%</b></td><td>可补 7 天 20%</td><td>唯一高 Lift 且盈利不差的格子（+10.1pp / +3.9pp）</td></tr>
+<tr><td>3</td><td>newpage≥2 或 days_since_last_active≤1</td><td><b>3 天 20%</b> 或不发</td><td>不补</td><td>对照已高转化，30% 白送；有进件盈利差 −11pp</td></tr>
+<tr><td>4</td><td>last_remit_utilization_rate&gt;1 或 utilization_rate&gt;1</td><td><b>3 天 20%</b></td><td>不补</td><td>Lift 仅 +0.7pp，盈利差 −13.1pp</td></tr>
+<tr><td>5</td><td>overdue_cnt≥1 或 max_over_due≥4</td><td><b>3 天 20%</b></td><td>不补 7 天</td><td>第一组有逾期发 7 天 30%，利润差约 14～20pp</td></tr>
+<tr><td>6</td><td>其余默认（额≤5k、无逾期、行为一般）</td><td><b>3 天 30%</b></td><td>停止或补 3 天 20%</td><td>对应第三组对不发：转化有增益、利润伤害小</td></tr>
+<tr><td>—</td><td>窗内已用券提单</td><td>—</td><td><b>不再发</b></td><td>第一组窗外续借把 20% 拉到 12.6%</td></tr>
+</tbody></table></div>
+<div class="callout gold"><div class="ch">判断顺序（可直接写进投放）</div>
+<pre style="white-space:pre-wrap;color:#d7eef8;margin:0;font-size:13px;line-height:1.7">if last_vir_amt &gt; 10000 or (last_vir_amt &gt; 5000 and max_over_due &gt; 0):
+    发 3天20%
+elif newpage_cnt + amount_selection_cnt == 0 and last_vir_amt &gt; 5000:
+    发 3天30%          # 最该花钱召回
+elif newpage_cnt &gt;= 2 or days_since_last_active &lt;= 1:
+    发 3天20% 或不发
+elif last_remit_utilization_rate &gt; 1 or overdue_cnt &gt;= 1:
+    发 3天20%
+else:
+    发 3天30%</pre>
+</div>
+<p class="desc">建议流量：70% 走上述规则（默认 3 天 30%），20% 把规则里的 30% 改成 20% 做折扣对照，10% 继续 7 天 30% 防止季节变化看错。核心监控仍是两列：<b>对齐窗内提单率</b>、<b>到期用券单盈利率</b>（外加零还款金额占比、≥5000 单盈利）。</p>
+
+<h2>七、口径与限制</h2>
+<div class="callout"><div class="ch">必须一起读的限制</div>
+1. 用券是时间窗归因，不是核销；订单表优惠金额字段在这批单上为 0。<br>
+2. 三组不在同一周，第三组到期少，不能把 3.12% 和第一组 15.84% 比绝对水平。<br>
+3. 特征分箱是三组混合 ITT，第二组对照也有 3 天券，会把「发券伤害」低估一点；组内表已分开。<br>
+4. 20% 折扣、7 天 20% 补发没有历史实验，规则里是外推。<br>
+5. 盈利含当天到期未还清的单，repaid_amt 会随时间变，复现时统计日要写进备注。
+</div>
+
+<h2>附录 · 完整 PGSQL</h2>
+<p class="desc">GaussDB / kaby_dw。一次跑完：建临时名单 → 关联召回后订单 → A 组 ITT、B 用券窗、C 用券订单、D 用户类型、E 特征分箱。与报告数字同一口径。脚本文件：appendix_no_apply_coupon_recall.sql</p>
+<details open><summary>点击展开 / 收起 SQL（可整段复制）</summary>
+<pre class="sql">-- =============================================================================
+-- 结清未提单召回：7天/3天 30% 减息券实验（排除 0814）
+-- 库：kaby_dw（GaussDB）  schema：wangchuanliang
+-- 统计日：CURRENT_DATE；复现报告全部表与图中的人数、提单率、次数、盈利率、特征分箱
+--
+-- 口径
+--   样本：no_apply_结清日_触达日_30pct，14 张表（不含 0814）
+--   组：G1=0716-0719 实验7天30% / 对照不发
+--       G2=0730-0802 实验7天30% / 对照3天30%
+--       G3=0813,0815,0816,0821-0823 实验3天30% / 对照不发
+--   用户：组内 DISTINCT ON (user_id)，按 reach_date, ab_group 取最早一条
+--   召回后提单：order_loan_f_v2_copy.apply_date &gt;= reach_date，不卡 is_due / is_remit
+--   平均提单次数：召回后全部提单订单数 / 提单去重用户
+--   平均放款次数：召回后 is_remit=1 订单数 / 放款去重用户
+--   盈利率：仅 is_remit=1 AND is_due=1 AND remit_amt&gt;0
+--            (Σrepaid_amt - Σremit_amt) / Σremit_amt ，repaid_amt 空按 0
+--   用券窗：召回当天发券；7天=reach..reach+6；3天=reach..reach+2
+--            实验组用 t_days，对照用 c_days（0 表示不发券，订单全记非用券）
+--   对齐窗（仅对照无券时用于比较）：G1 用 7 天，G3 用 3 天
+-- =============================================================================
+
+SET statement_timeout = 420000;
+
+-- -----------------------------------------------------------------------------
+-- 0) 召回名单 + 实验分组
+-- -----------------------------------------------------------------------------
+DROP TABLE IF EXISTS tmp_na_raw;
+CREATE TEMP TABLE tmp_na_raw AS
+SELECT churn_user_id::bigint AS user_id, ab_group::text AS ab_group,
+       churn_days, total_apply_rnb, total_remit_rnb, total_remit_amt, als,
+       max_over_due, overdue_cnt, overdue_term_cnt, total_vir_amt, total_apply_amt,
+       utilization_rate, last_remit_utilization_rate, high_interest_rate,
+       last_remit_product_no, last_remit_interest_type::text AS last_remit_interest_type,
+       last_remit_total_term, last_remit_overdue_days, last_vir_amt,
+       last_vir_risk_product::text AS last_vir_risk_product, last_vir_total_term,
+       active_days_cnt, days_since_last_active,
+       newpage_cnt, newconfirm_cnt, amount_selection_cnt, term_selection_cnt,
+       plan_newdetails_cnt, contract_newdetails_cnt, purpose_newdetails_cnt,
+       coupons_page_cnt, coupons_confirm_cnt, send_coupon_d_cnt, send_coupon_r_cnt,
+       DATE '2026-07-21' AS reach_date, 'G1'::text AS exp_g, 7 AS t_days, 0 AS c_days
+FROM wangchuanliang.no_apply_0716_0721_30pct WHERE churn_user_id IS NOT NULL
+UNION ALL
+SELECT churn_user_id::bigint, ab_group::text, churn_days, total_apply_rnb, total_remit_rnb, total_remit_amt, als,
+       max_over_due, overdue_cnt, overdue_term_cnt, total_vir_amt, total_apply_amt,
+       utilization_rate, last_remit_utilization_rate, high_interest_rate,
+       last_remit_product_no, last_remit_interest_type::text, last_remit_total_term, last_remit_overdue_days,
+       last_vir_amt, last_vir_risk_product::text, last_vir_total_term, active_days_cnt, days_since_last_active,
+       newpage_cnt, newconfirm_cnt, amount_selection_cnt, term_selection_cnt,
+       plan_newdetails_cnt, contract_newdetails_cnt, purpose_newdetails_cnt,
+       coupons_page_cnt, coupons_confirm_cnt, send_coupon_d_cnt, send_coupon_r_cnt,
+       DATE '2026-07-22', 'G1', 7, 0
+FROM wangchuanliang.no_apply_0717_0722_30pct WHERE churn_user_id IS NOT NULL
+UNION ALL
+SELECT churn_user_id::bigint, ab_group::text, churn_days, total_apply_rnb, total_remit_rnb, total_remit_amt, als,
+       max_over_due, overdue_cnt, overdue_term_cnt, total_vir_amt, total_apply_amt,
+       utilization_rate, last_remit_utilization_rate, high_interest_rate,
+       last_remit_product_no, last_remit_interest_type::text, last_remit_total_term, last_remit_overdue_days,
+       last_vir_amt, last_vir_risk_product::text, last_vir_total_term, active_days_cnt, days_since_last_active,
+       newpage_cnt, newconfirm_cnt, amount_selection_cnt, term_selection_cnt,
+       plan_newdetails_cnt, contract_newdetails_cnt, purpose_newdetails_cnt,
+       coupons_page_cnt, coupons_confirm_cnt, send_coupon_d_cnt, send_coupon_r_cnt,
+       DATE '2026-07-23', 'G1', 7, 0
+FROM wangchuanliang.no_apply_0718_0723_30pct WHERE churn_user_id IS NOT NULL
+UNION ALL
+SELECT churn_user_id::bigint, ab_group::text, churn_days, total_apply_rnb, total_remit_rnb, total_remit_amt, als,
+       max_over_due, overdue_cnt, overdue_term_cnt, total_vir_amt, total_apply_amt,
+       utilization_rate, last_remit_utilization_rate, high_interest_rate,
+       last_remit_product_no, last_remit_interest_type::text, last_remit_total_term, last_remit_overdue_days,
+       last_vir_amt, last_vir_risk_product::text, last_vir_total_term, active_days_cnt, days_since_last_active,
+       newpage_cnt, newconfirm_cnt, amount_selection_cnt, term_selection_cnt,
+       plan_newdetails_cnt, contract_newdetails_cnt, purpose_newdetails_cnt,
+       coupons_page_cnt, coupons_confirm_cnt, send_coupon_d_cnt, send_coupon_r_cnt,
+       DATE '2026-07-24', 'G1', 7, 0
+FROM wangchuanliang.no_apply_0719_0724_30pct WHERE churn_user_id IS NOT NULL
+UNION ALL
+SELECT churn_user_id::bigint, ab_group::text, churn_days, total_apply_rnb, total_remit_rnb, total_remit_amt, als,
+       max_over_due, overdue_cnt, overdue_term_cnt, total_vir_amt, total_apply_amt,
+       utilization_rate, last_remit_utilization_rate, high_interest_rate,
+       last_remit_product_no, last_remit_interest_type::text, last_remit_total_term, last_remit_overdue_days,
+       last_vir_amt, last_vir_risk_product::text, last_vir_total_term, active_days_cnt, days_since_last_active,
+       newpage_cnt, newconfirm_cnt, amount_selection_cnt, term_selection_cnt,
+       plan_newdetails_cnt, contract_newdetails_cnt, purpose_newdetails_cnt,
+       coupons_page_cnt, coupons_confirm_cnt, send_coupon_d_cnt, send_coupon_r_cnt,
+       DATE '2026-08-04', 'G2', 7, 3
+FROM wangchuanliang.no_apply_0730_0804_30pct WHERE churn_user_id IS NOT NULL
+UNION ALL
+SELECT churn_user_id::bigint, ab_group::text, churn_days, total_apply_rnb, total_remit_rnb, total_remit_amt, als,
+       max_over_due, overdue_cnt, overdue_term_cnt, total_vir_amt, total_apply_amt,
+       utilization_rate, last_remit_utilization_rate, high_interest_rate,
+       last_remit_product_no, last_remit_interest_type::text, last_remit_total_term, last_remit_overdue_days,
+       last_vir_amt, last_vir_risk_product::text, last_vir_total_term, active_days_cnt, days_since_last_active,
+       newpage_cnt, newconfirm_cnt, amount_selection_cnt, term_selection_cnt,
+       plan_newdetails_cnt, contract_newdetails_cnt, purpose_newdetails_cnt,
+       coupons_page_cnt, coupons_confirm_cnt, send_coupon_d_cnt, send_coupon_r_cnt,
+       DATE '2026-08-05', 'G2', 7, 3
+FROM wangchuanliang.no_apply_0731_0805_30pct WHERE churn_user_id IS NOT NULL
+UNION ALL
+SELECT churn_user_id::bigint, ab_group::text, churn_days, total_apply_rnb, total_remit_rnb, total_remit_amt, als,
+       max_over_due, overdue_cnt, overdue_term_cnt, total_vir_amt, total_apply_amt,
+       utilization_rate, last_remit_utilization_rate, high_interest_rate,
+       last_remit_product_no, last_remit_interest_type::text, last_remit_total_term, last_remit_overdue_days,
+       last_vir_amt, last_vir_risk_product::text, last_vir_total_term, active_days_cnt, days_since_last_active,
+       newpage_cnt, newconfirm_cnt, amount_selection_cnt, term_selection_cnt,
+       plan_newdetails_cnt, contract_newdetails_cnt, purpose_newdetails_cnt,
+       coupons_page_cnt, coupons_confirm_cnt, send_coupon_d_cnt, send_coupon_r_cnt,
+       DATE '2026-08-06', 'G2', 7, 3
+FROM wangchuanliang.no_apply_0801_0806_30pct WHERE churn_user_id IS NOT NULL
+UNION ALL
+SELECT churn_user_id::bigint, ab_group::text, churn_days, total_apply_rnb, total_remit_rnb, total_remit_amt, als,
+       max_over_due, overdue_cnt, overdue_term_cnt, total_vir_amt, total_apply_amt,
+       utilization_rate, last_remit_utilization_rate, high_interest_rate,
+       last_remit_product_no, last_remit_interest_type::text, last_remit_total_term, last_remit_overdue_days,
+       last_vir_amt, last_vir_risk_product::text, last_vir_total_term, active_days_cnt, days_since_last_active,
+       newpage_cnt, newconfirm_cnt, amount_selection_cnt, term_selection_cnt,
+       plan_newdetails_cnt, contract_newdetails_cnt, purpose_newdetails_cnt,
+       coupons_page_cnt, coupons_confirm_cnt, send_coupon_d_cnt, send_coupon_r_cnt,
+       DATE '2026-08-07', 'G2', 7, 3
+FROM wangchuanliang.no_apply_0802_0807_30pct WHERE churn_user_id IS NOT NULL
+UNION ALL
+SELECT churn_user_id::bigint, ab_group::text, churn_days, total_apply_rnb, total_remit_rnb, total_remit_amt, als,
+       max_over_due, overdue_cnt, overdue_term_cnt, total_vir_amt, total_apply_amt,
+       utilization_rate, last_remit_utilization_rate, high_interest_rate,
+       last_remit_product_no, last_remit_interest_type::text, last_remit_total_term, last_remit_overdue_days,
+       last_vir_amt, last_vir_risk_product::text, last_vir_total_term, active_days_cnt, days_since_last_active,
+       newpage_cnt, newconfirm_cnt, amount_selection_cnt, term_selection_cnt,
+       plan_newdetails_cnt, contract_newdetails_cnt, purpose_newdetails_cnt,
+       coupons_page_cnt, coupons_confirm_cnt, send_coupon_d_cnt, send_coupon_r_cnt,
+       DATE '2026-08-18', 'G3', 3, 0
+FROM wangchuanliang.no_apply_0813_0818_30pct WHERE churn_user_id IS NOT NULL
+UNION ALL
+SELECT churn_user_id::bigint, ab_group::text, churn_days, total_apply_rnb, total_remit_rnb, total_remit_amt, als,
+       max_over_due, overdue_cnt, overdue_term_cnt, total_vir_amt, total_apply_amt,
+       utilization_rate, last_remit_utilization_rate, high_interest_rate,
+       last_remit_product_no, last_remit_interest_type::text, last_remit_total_term, last_remit_overdue_days,
+       last_vir_amt, last_vir_risk_product::text, last_vir_total_term, active_days_cnt, days_since_last_active,
+       newpage_cnt, newconfirm_cnt, amount_selection_cnt, term_selection_cnt,
+       plan_newdetails_cnt, contract_newdetails_cnt, purpose_newdetails_cnt,
+       coupons_page_cnt, coupons_confirm_cnt, send_coupon_d_cnt, send_coupon_r_cnt,
+       DATE '2026-08-20', 'G3', 3, 0
+FROM wangchuanliang.no_apply_0815_0820_30pct WHERE churn_user_id IS NOT NULL
+UNION ALL
+SELECT churn_user_id::bigint, ab_group::text, churn_days, total_apply_rnb, total_remit_rnb, total_remit_amt, als,
+       max_over_due, overdue_cnt, overdue_term_cnt, total_vir_amt, total_apply_amt,
+       utilization_rate, last_remit_utilization_rate, high_interest_rate,
+       last_remit_product_no, last_remit_interest_type::text, last_remit_total_term, last_remit_overdue_days,
+       last_vir_amt, last_vir_risk_product::text, last_vir_total_term, active_days_cnt, days_since_last_active,
+       newpage_cnt, newconfirm_cnt, amount_selection_cnt, term_selection_cnt,
+       plan_newdetails_cnt, contract_newdetails_cnt, purpose_newdetails_cnt,
+       coupons_page_cnt, coupons_confirm_cnt, send_coupon_d_cnt, send_coupon_r_cnt,
+       DATE '2026-08-21', 'G3', 3, 0
+FROM wangchuanliang.no_apply_0816_0821_30pct WHERE churn_user_id IS NOT NULL
+UNION ALL
+SELECT churn_user_id::bigint, ab_group::text, churn_days, total_apply_rnb, total_remit_rnb, total_remit_amt, als,
+       max_over_due, overdue_cnt, overdue_term_cnt, total_vir_amt, total_apply_amt,
+       utilization_rate, last_remit_utilization_rate, high_interest_rate,
+       last_remit_product_no, last_remit_interest_type::text, last_remit_total_term, last_remit_overdue_days,
+       last_vir_amt, last_vir_risk_product::text, last_vir_total_term, active_days_cnt, days_since_last_active,
+       newpage_cnt, newconfirm_cnt, amount_selection_cnt, term_selection_cnt,
+       plan_newdetails_cnt, contract_newdetails_cnt, purpose_newdetails_cnt,
+       coupons_page_cnt, coupons_confirm_cnt, send_coupon_d_cnt, send_coupon_r_cnt,
+       DATE '2026-08-26', 'G3', 3, 0
+FROM wangchuanliang.no_apply_0821_0826_30pct WHERE churn_user_id IS NOT NULL
+UNION ALL
+SELECT churn_user_id::bigint, ab_group::text, churn_days, total_apply_rnb, total_remit_rnb, total_remit_amt, als,
+       max_over_due, overdue_cnt, overdue_term_cnt, total_vir_amt, total_apply_amt,
+       utilization_rate, last_remit_utilization_rate, high_interest_rate,
+       last_remit_product_no, last_remit_interest_type::text, last_remit_total_term, last_remit_overdue_days,
+       last_vir_amt, last_vir_risk_product::text, last_vir_total_term, active_days_cnt, days_since_last_active,
+       newpage_cnt, newconfirm_cnt, amount_selection_cnt, term_selection_cnt,
+       plan_newdetails_cnt, contract_newdetails_cnt, purpose_newdetails_cnt,
+       coupons_page_cnt, coupons_confirm_cnt, send_coupon_d_cnt, send_coupon_r_cnt,
+       DATE '2026-08-27', 'G3', 3, 0
+FROM wangchuanliang.no_apply_0822_0827_30pct WHERE churn_user_id IS NOT NULL
+UNION ALL
+SELECT churn_user_id::bigint, ab_group::text, churn_days, total_apply_rnb, total_remit_rnb, total_remit_amt, als,
+       max_over_due, overdue_cnt, overdue_term_cnt, total_vir_amt, total_apply_amt,
+       utilization_rate, last_remit_utilization_rate, high_interest_rate,
+       last_remit_product_no, last_remit_interest_type::text, last_remit_total_term, last_remit_overdue_days,
+       last_vir_amt, last_vir_risk_product::text, last_vir_total_term, active_days_cnt, days_since_last_active,
+       newpage_cnt, newconfirm_cnt, amount_selection_cnt, term_selection_cnt,
+       plan_newdetails_cnt, contract_newdetails_cnt, purpose_newdetails_cnt,
+       coupons_page_cnt, coupons_confirm_cnt, send_coupon_d_cnt, send_coupon_r_cnt,
+       DATE '2026-08-28', 'G3', 3, 0
+FROM wangchuanliang.no_apply_0823_0828_30pct WHERE churn_user_id IS NOT NULL;
+
+DROP TABLE IF EXISTS tmp_na_user;
+CREATE TEMP TABLE tmp_na_user AS
+SELECT DISTINCT ON (exp_g, user_id)
+    *,
+    CASE WHEN ab_group = 'treatment' THEN t_days
+         WHEN ab_group = 'control' THEN c_days
+         ELSE 0 END AS coupon_days,
+    CASE WHEN exp_g = 'G3' THEN 3 ELSE 7 END AS align_days
+FROM tmp_na_raw
+ORDER BY exp_g, user_id, reach_date, ab_group;
+
+-- -----------------------------------------------------------------------------
+-- 1) 召回后订单（不卡到期）
+-- -----------------------------------------------------------------------------
+DROP TABLE IF EXISTS tmp_na_ord;
+CREATE TEMP TABLE tmp_na_ord AS
+SELECT
+    u.exp_g, u.user_id, u.ab_group, u.reach_date, u.coupon_days, u.align_days, u.t_days, u.c_days,
+    u.last_vir_amt, u.als, u.max_over_due, u.overdue_cnt,
+    u.utilization_rate, u.last_remit_utilization_rate, u.high_interest_rate,
+    u.newpage_cnt, u.amount_selection_cnt, u.active_days_cnt, u.days_since_last_active,
+    u.last_remit_interest_type,
+    o.serial_id, o.apply_date, o.apply_time, o.is_remit, o.is_due,
+    o.remit_amt, COALESCE(o.repaid_amt, 0) AS repaid_amt,
+    COALESCE(o.pre_amt, 0) + COALESCE(o.post_amt, 0) AS fee_amt,
+    CASE WHEN u.coupon_days &gt; 0 AND o.apply_date &lt;= u.reach_date + (u.coupon_days - 1)
+         THEN 1 ELSE 0 END AS in_coupon_win,
+    CASE WHEN o.apply_date &lt;= u.reach_date + (u.align_days - 1)
+         THEN 1 ELSE 0 END AS in_align_win
+FROM tmp_na_user u
+INNER JOIN wangchuanliang.order_loan_f_v2_copy o
+  ON o.user_id = u.user_id
+ AND o.apply_date &gt;= u.reach_date;
+
+-- -----------------------------------------------------------------------------
+-- A) ITT：组 × 实验/对照  提单率、平均次数、到期盈利率
+-- -----------------------------------------------------------------------------
+SELECT
+    u.exp_g,
+    u.ab_group,
+    COUNT(*) AS n_user,
+    SUM(CASE WHEN a.n_apply &gt; 0 THEN 1 ELSE 0 END) AS n_apply_user,
+    ROUND(100.0 * SUM(CASE WHEN a.n_apply &gt; 0 THEN 1 ELSE 0 END) / COUNT(*), 2) AS apply_pct,
+    SUM(COALESCE(a.n_apply, 0)) AS n_apply_ord,
+    ROUND(1.0 * SUM(COALESCE(a.n_apply, 0))
+        / NULLIF(SUM(CASE WHEN a.n_apply &gt; 0 THEN 1 ELSE 0 END), 0), 3) AS avg_apply,
+    SUM(CASE WHEN a.n_remit_user &gt; 0 THEN 1 ELSE 0 END) AS n_remit_user,
+    SUM(COALESCE(a.n_remit, 0)) AS n_remit_ord,
+    ROUND(1.0 * SUM(COALESCE(a.n_remit, 0))
+        / NULLIF(SUM(CASE WHEN a.n_remit_user &gt; 0 THEN 1 ELSE 0 END), 0), 3) AS avg_remit,
+    SUM(COALESCE(a.due_n, 0)) AS due_n,
+    SUM(CASE WHEN a.due_n &gt; 0 THEN 1 ELSE 0 END) AS due_user,
+    SUM(COALESCE(a.due_repaid, 0)) AS due_repaid,
+    SUM(COALESCE(a.due_remit, 0)) AS due_remit,
+    ROUND(100.0 * (SUM(COALESCE(a.due_repaid, 0)) - SUM(COALESCE(a.due_remit, 0)))
+        / NULLIF(SUM(COALESCE(a.due_remit, 0)), 0), 2) AS profit_pct
+FROM tmp_na_user u
+LEFT JOIN (
+    SELECT exp_g, user_id,
+           COUNT(*) AS n_apply,
+           SUM(CASE WHEN is_remit = 1 THEN 1 ELSE 0 END) AS n_remit,
+           MAX(CASE WHEN is_remit = 1 THEN 1 ELSE 0 END) AS n_remit_user,
+           SUM(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN 1 ELSE 0 END) AS due_n,
+           SUM(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN remit_amt ELSE 0 END) AS due_remit,
+           SUM(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN repaid_amt ELSE 0 END) AS due_repaid
+    FROM tmp_na_ord
+    GROUP BY 1, 2
+) a ON a.exp_g = u.exp_g AND a.user_id = u.user_id
+GROUP BY u.exp_g, u.ab_group
+ORDER BY 1, 2;
+
+-- 组合计（实验+对照）
+SELECT
+    u.exp_g,
+    COUNT(*) AS n_user,
+    SUM(CASE WHEN a.n_apply &gt; 0 THEN 1 ELSE 0 END) AS n_apply_user,
+    ROUND(100.0 * SUM(CASE WHEN a.n_apply &gt; 0 THEN 1 ELSE 0 END) / COUNT(*), 2) AS apply_pct,
+    ROUND(1.0 * SUM(COALESCE(a.n_apply, 0))
+        / NULLIF(SUM(CASE WHEN a.n_apply &gt; 0 THEN 1 ELSE 0 END), 0), 3) AS avg_apply,
+    ROUND(1.0 * SUM(COALESCE(a.n_remit, 0))
+        / NULLIF(SUM(CASE WHEN a.n_remit_user &gt; 0 THEN 1 ELSE 0 END), 0), 3) AS avg_remit,
+    SUM(COALESCE(a.due_n, 0)) AS due_n,
+    ROUND(100.0 * (SUM(COALESCE(a.due_repaid, 0)) - SUM(COALESCE(a.due_remit, 0)))
+        / NULLIF(SUM(COALESCE(a.due_remit, 0)), 0), 2) AS profit_pct
+FROM tmp_na_user u
+LEFT JOIN (
+    SELECT exp_g, user_id,
+           COUNT(*) AS n_apply,
+           SUM(CASE WHEN is_remit = 1 THEN 1 ELSE 0 END) AS n_remit,
+           MAX(CASE WHEN is_remit = 1 THEN 1 ELSE 0 END) AS n_remit_user,
+           SUM(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN 1 ELSE 0 END) AS due_n,
+           SUM(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN remit_amt ELSE 0 END) AS due_remit,
+           SUM(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN repaid_amt ELSE 0 END) AS due_repaid
+    FROM tmp_na_ord GROUP BY 1, 2
+) a ON a.exp_g = u.exp_g AND a.user_id = u.user_id
+GROUP BY u.exp_g
+ORDER BY 1;
+
+-- -----------------------------------------------------------------------------
+-- B) 用券窗 / 窗外  + 对照对齐窗
+-- -----------------------------------------------------------------------------
+SELECT
+    exp_g, ab_group,
+    CASE WHEN in_coupon_win = 1 THEN 'in_coupon' ELSE 'out_coupon' END AS win,
+    COUNT(*) AS n_apply_ord,
+    COUNT(DISTINCT user_id) AS n_apply_user,
+    SUM(CASE WHEN is_remit = 1 THEN 1 ELSE 0 END) AS n_remit_ord,
+    COUNT(DISTINCT CASE WHEN is_remit = 1 THEN user_id END) AS n_remit_user,
+    SUM(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN 1 ELSE 0 END) AS due_n,
+    COUNT(DISTINCT CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN user_id END) AS due_user,
+    SUM(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN repaid_amt ELSE 0 END) AS due_repaid,
+    SUM(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN remit_amt ELSE 0 END) AS due_remit,
+    ROUND(100.0 * (
+        SUM(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN repaid_amt ELSE 0 END)
+      - SUM(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN remit_amt ELSE 0 END)
+    ) / NULLIF(SUM(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN remit_amt ELSE 0 END), 0), 2) AS profit_pct,
+    ROUND(AVG(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN remit_amt END), 1) AS avg_due_remit,
+    ROUND(SUM(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN fee_amt ELSE 0 END)
+        / NULLIF(SUM(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN remit_amt ELSE 0 END), 0), 4) AS fee_rate
+FROM tmp_na_ord
+GROUP BY 1, 2, 3
+ORDER BY 1, 2, 3;
+
+-- 窗内提单率分母 = 组内该臂全部用户
+SELECT
+    u.exp_g, u.ab_group,
+    COUNT(*) AS n_user,
+    SUM(CASE WHEN i.n_in &gt; 0 THEN 1 ELSE 0 END) AS n_in_apply_user,
+    ROUND(100.0 * SUM(CASE WHEN i.n_in &gt; 0 THEN 1 ELSE 0 END) / COUNT(*), 2) AS in_apply_pct,
+    SUM(CASE WHEN i.n_out &gt; 0 THEN 1 ELSE 0 END) AS n_out_apply_user,
+    ROUND(100.0 * SUM(CASE WHEN i.n_out &gt; 0 THEN 1 ELSE 0 END) / COUNT(*), 2) AS out_apply_pct
+FROM tmp_na_user u
+LEFT JOIN (
+    SELECT exp_g, user_id,
+           SUM(in_coupon_win) AS n_in,
+           SUM(CASE WHEN in_coupon_win = 0 THEN 1 ELSE 0 END) AS n_out
+    FROM tmp_na_ord GROUP BY 1, 2
+) i ON i.exp_g = u.exp_g AND i.user_id = u.user_id
+GROUP BY 1, 2
+ORDER BY 1, 2;
+
+-- 对照对齐窗（G1=7天、G3=3天，无券对照与实验同一观察窗）
+SELECT
+    u.exp_g, u.ab_group,
+    COUNT(*) AS n_user,
+    SUM(CASE WHEN i.n_in &gt; 0 THEN 1 ELSE 0 END) AS n_align_apply_user,
+    ROUND(100.0 * SUM(CASE WHEN i.n_in &gt; 0 THEN 1 ELSE 0 END) / COUNT(*), 2) AS align_apply_pct
+FROM tmp_na_user u
+LEFT JOIN (
+    SELECT exp_g, user_id, SUM(in_align_win) AS n_in
+    FROM tmp_na_ord GROUP BY 1, 2
+) i ON i.exp_g = u.exp_g AND i.user_id = u.user_id
+GROUP BY 1, 2
+ORDER BY 1, 2;
+
+SELECT
+    exp_g, ab_group,
+    CASE WHEN in_align_win = 1 THEN 'align_in' ELSE 'align_out' END AS win,
+    COUNT(*) AS n_apply_ord,
+    COUNT(DISTINCT user_id) AS n_apply_user,
+    SUM(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN 1 ELSE 0 END) AS due_n,
+    SUM(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN repaid_amt ELSE 0 END) AS due_repaid,
+    SUM(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN remit_amt ELSE 0 END) AS due_remit,
+    ROUND(100.0 * (
+        SUM(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN repaid_amt ELSE 0 END)
+      - SUM(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN remit_amt ELSE 0 END)
+    ) / NULLIF(SUM(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN remit_amt ELSE 0 END), 0), 2) AS profit_pct,
+    ROUND(AVG(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN remit_amt END), 1) AS avg_due_remit,
+    ROUND(SUM(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN fee_amt ELSE 0 END)
+        / NULLIF(SUM(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN remit_amt ELSE 0 END), 0), 4) AS fee_rate
+FROM tmp_na_ord
+GROUP BY 1, 2, 3
+ORDER BY 1, 2, 3;
+
+-- -----------------------------------------------------------------------------
+-- C) 用券订单 vs 非用券订单（到期放款）：件均、费比、零还款金额占比
+-- -----------------------------------------------------------------------------
+SELECT
+    exp_g, ab_group,
+    CASE WHEN in_coupon_win = 1 THEN '用券订单' ELSE '非用券订单' END AS ord_type,
+    COUNT(*) AS due_n,
+    COUNT(DISTINCT user_id) AS due_user,
+    ROUND(AVG(remit_amt), 1) AS avg_remit,
+    ROUND(SUM(fee_amt) / SUM(remit_amt), 4) AS fee_rate,
+    ROUND(100.0 * (SUM(repaid_amt) - SUM(remit_amt)) / SUM(remit_amt), 2) AS profit_pct,
+    SUM(CASE WHEN repaid_amt &lt;= 0 THEN 1 ELSE 0 END) AS unpaid_n,
+    ROUND(SUM(CASE WHEN repaid_amt &lt;= 0 THEN remit_amt ELSE 0 END) / SUM(remit_amt), 4) AS unpaid_remit_share
+FROM tmp_na_ord
+WHERE is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0
+GROUP BY 1, 2, 3
+ORDER BY 1, 2, 3;
+
+-- 用券到期单金额分桶
+SELECT
+    exp_g, ab_group,
+    CASE WHEN in_coupon_win = 1 THEN '用券订单' ELSE '非用券订单' END AS ord_type,
+    CASE WHEN remit_amt &lt;= 1500 THEN '&lt;=1.5k'
+         WHEN remit_amt &lt;= 3000 THEN '1.5-3k'
+         WHEN remit_amt &lt;= 5000 THEN '3-5k'
+         WHEN remit_amt &lt;= 10000 THEN '5-10k'
+         ELSE '&gt;10k' END AS amt_bin,
+    COUNT(*) AS due_n,
+    ROUND(AVG(remit_amt), 1) AS avg_remit,
+    ROUND(100.0 * (SUM(repaid_amt) - SUM(remit_amt)) / SUM(remit_amt), 2) AS profit_pct,
+    ROUND(SUM(CASE WHEN repaid_amt &lt;= 0 THEN remit_amt ELSE 0 END) / SUM(remit_amt), 4) AS unpaid_remit_share
+FROM tmp_na_ord
+WHERE is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0
+GROUP BY 1, 2, 3, 4
+ORDER BY 1, 2, 3, 4;
+
+-- -----------------------------------------------------------------------------
+-- D) 实验组用户类型：窗内用过券 / 仅窗外提单 / 从未提单，其全部到期单
+-- -----------------------------------------------------------------------------
+SELECT
+    u.exp_g,
+    CASE WHEN COALESCE(i.n_in, 0) &gt; 0 THEN '用券用户'
+         WHEN COALESCE(i.n_apply, 0) &gt; 0 THEN '未用券但后来提单'
+         ELSE '从未提单' END AS utype,
+    COUNT(*) AS n_user,
+    SUM(COALESCE(i.due_n, 0)) AS due_n,
+    COUNT(DISTINCT CASE WHEN i.due_n &gt; 0 THEN u.user_id END) AS due_user,
+    ROUND(100.0 * (SUM(COALESCE(i.due_repaid, 0)) - SUM(COALESCE(i.due_remit, 0)))
+        / NULLIF(SUM(COALESCE(i.due_remit, 0)), 0), 2) AS profit_pct
+FROM tmp_na_user u
+LEFT JOIN (
+    SELECT exp_g, user_id,
+           COUNT(*) AS n_apply,
+           SUM(in_coupon_win) AS n_in,
+           SUM(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN 1 ELSE 0 END) AS due_n,
+           SUM(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN remit_amt ELSE 0 END) AS due_remit,
+           SUM(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN repaid_amt ELSE 0 END) AS due_repaid
+    FROM tmp_na_ord GROUP BY 1, 2
+) i ON i.exp_g = u.exp_g AND i.user_id = u.user_id
+WHERE u.ab_group = 'treatment'
+GROUP BY 1, 2
+ORDER BY 1, 2;
+
+-- -----------------------------------------------------------------------------
+-- E) 召回时特征分箱 × 实验/对照（ITT 提单率、到期盈利率）
+--     分母=箱内该臂用户；盈利=箱内该臂到期放款单金额加权
+-- -----------------------------------------------------------------------------
+DROP TABLE IF EXISTS tmp_na_feat;
+CREATE TEMP TABLE tmp_na_feat AS
+SELECT
+    u.*,
+    CASE WHEN COALESCE(a.n_apply, 0) &gt; 0 THEN 1 ELSE 0 END AS applied,
+    COALESCE(a.due_n, 0) AS due_n,
+    COALESCE(a.due_remit, 0) AS due_remit,
+    COALESCE(a.due_repaid, 0) AS due_repaid,
+    CASE WHEN last_vir_amt &lt;= 2000 THEN '&lt;=2k'
+         WHEN last_vir_amt &lt;= 5000 THEN '2-5k'
+         WHEN last_vir_amt &lt;= 10000 THEN '5-10k'
+         ELSE '&gt;10k' END AS vir_bin,
+    CASE WHEN last_vir_amt &gt; 5000 THEN '&gt;5k' ELSE '&lt;=5k' END AS amt5,
+    CASE WHEN COALESCE(newpage_cnt, 0) + COALESCE(amount_selection_cnt, 0) &gt; 0
+         THEN '有进件' ELSE '无进件' END AS intent,
+    CASE WHEN COALESCE(max_over_due, 0) &gt; 0 THEN '有逾期' ELSE '无逾期' END AS od_bin,
+    CASE WHEN last_remit_utilization_rate &lt;= 0.8 THEN '&lt;=0.8'
+         WHEN last_remit_utilization_rate &lt;= 1.0 THEN '0.8-1'
+         ELSE '&gt;1' END AS util_bin,
+    CASE WHEN COALESCE(newpage_cnt, 0) = 0 THEN '0'
+         WHEN newpage_cnt = 1 THEN '1'
+         WHEN newpage_cnt &lt;= 3 THEN '2-3'
+         ELSE '&gt;3' END AS newpage_bin
+FROM tmp_na_user u
+LEFT JOIN (
+    SELECT exp_g, user_id,
+           COUNT(*) AS n_apply,
+           SUM(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN 1 ELSE 0 END) AS due_n,
+           SUM(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN remit_amt ELSE 0 END) AS due_remit,
+           SUM(CASE WHEN is_remit = 1 AND is_due = 1 AND remit_amt &gt; 0 THEN repaid_amt ELSE 0 END) AS due_repaid
+    FROM tmp_na_ord GROUP BY 1, 2
+) a ON a.exp_g = u.exp_g AND a.user_id = u.user_id;
+
+-- E1 last_vir_amt
+SELECT 'last_vir_amt' AS feat, vir_bin AS bin, ab_group,
+       COUNT(*) AS n_user,
+       SUM(applied) AS n_apply_user,
+       ROUND(100.0 * SUM(applied) / COUNT(*), 2) AS apply_pct,
+       SUM(due_n) AS due_n,
+       ROUND(100.0 * (SUM(due_repaid) - SUM(due_remit)) / NULLIF(SUM(due_remit), 0), 2) AS profit_pct
+FROM tmp_na_feat
+GROUP BY 2, 3
+ORDER BY 2, 3;
+
+-- E2 进件意图
+SELECT 'intent' AS feat, intent AS bin, ab_group,
+       COUNT(*) AS n_user, SUM(applied) AS n_apply_user,
+       ROUND(100.0 * SUM(applied) / COUNT(*), 2) AS apply_pct,
+       SUM(due_n) AS due_n,
+       ROUND(100.0 * (SUM(due_repaid) - SUM(due_remit)) / NULLIF(SUM(due_remit), 0), 2) AS profit_pct
+FROM tmp_na_feat
+GROUP BY 2, 3
+ORDER BY 2, 3;
+
+-- E3 上次用信
+SELECT 'last_remit_utilization' AS feat, util_bin AS bin, ab_group,
+       COUNT(*) AS n_user, SUM(applied) AS n_apply_user,
+       ROUND(100.0 * SUM(applied) / COUNT(*), 2) AS apply_pct,
+       SUM(due_n) AS due_n,
+       ROUND(100.0 * (SUM(due_repaid) - SUM(due_remit)) / NULLIF(SUM(due_remit), 0), 2) AS profit_pct
+FROM tmp_na_feat
+GROUP BY 2, 3
+ORDER BY 2, 3;
+
+-- E4 进首页次数
+SELECT 'newpage_cnt' AS feat, newpage_bin AS bin, ab_group,
+       COUNT(*) AS n_user, SUM(applied) AS n_apply_user,
+       ROUND(100.0 * SUM(applied) / COUNT(*), 2) AS apply_pct,
+       SUM(due_n) AS due_n,
+       ROUND(100.0 * (SUM(due_repaid) - SUM(due_remit)) / NULLIF(SUM(due_remit), 0), 2) AS profit_pct
+FROM tmp_na_feat
+GROUP BY 2, 3
+ORDER BY 2, 3;
+
+-- E5 额度 × 意图
+SELECT amt5, intent, ab_group,
+       COUNT(*) AS n_user, SUM(applied) AS n_apply_user,
+       ROUND(100.0 * SUM(applied) / COUNT(*), 2) AS apply_pct,
+       SUM(due_n) AS due_n,
+       ROUND(100.0 * (SUM(due_repaid) - SUM(due_remit)) / NULLIF(SUM(due_remit), 0), 2) AS profit_pct
+FROM tmp_na_feat
+GROUP BY 1, 2, 3
+ORDER BY 1, 2, 3;
+
+-- E6 额度 × 逾期
+SELECT amt5, od_bin, ab_group,
+       COUNT(*) AS n_user, SUM(applied) AS n_apply_user,
+       ROUND(100.0 * SUM(applied) / COUNT(*), 2) AS apply_pct,
+       SUM(due_n) AS due_n,
+       ROUND(100.0 * (SUM(due_repaid) - SUM(due_remit)) / NULLIF(SUM(due_remit), 0), 2) AS profit_pct
+FROM tmp_na_feat
+GROUP BY 1, 2, 3
+ORDER BY 1, 2, 3;
+
+-- E7 组内额度分箱（报告分组对照）
+SELECT exp_g, vir_bin, ab_group,
+       COUNT(*) AS n_user, SUM(applied) AS n_apply_user,
+       ROUND(100.0 * SUM(applied) / COUNT(*), 2) AS apply_pct,
+       SUM(due_n) AS due_n,
+       ROUND(100.0 * (SUM(due_repaid) - SUM(due_remit)) / NULLIF(SUM(due_remit), 0), 2) AS profit_pct
+FROM tmp_na_feat
+GROUP BY 1, 2, 3
+ORDER BY 1, 2, 3;
+
+-- E8 特征均值（报告描述用）
+SELECT
+    COUNT(*) AS n_user,
+    ROUND(AVG(churn_days), 3) AS avg_churn_days,
+    ROUND(AVG(last_vir_amt), 1) AS avg_last_vir_amt,
+    ROUND(AVG(als), 1) AS avg_als,
+    ROUND(AVG(utilization_rate), 3) AS avg_util,
+    ROUND(AVG(newpage_cnt), 3) AS avg_newpage,
+    ROUND(AVG(active_days_cnt), 3) AS avg_active_days,
+    SUM(CASE WHEN coupons_page_cnt = 0 THEN 1 ELSE 0 END) AS n_coupon_page_zero
+FROM tmp_na_user;
+</pre>
+</details>
+<div class="foot">
+数据：wangchuanliang.no_apply_*_30pct + order_loan_f_v2_copy · 统计时库内 CURRENT_DATE · 排除 no_apply_0814_0819_30pct<br>
+复现：先跑附录 SQL 的 tmp 表，再依次跑 A–E 查询。HTML 图中数字与 2026-09-18 查询结果对齐。
+</div>
+</main>
+<script>
+const T='#43c7e7', C='#f68ab0', G='#64dcae', A='#ffc26b', V='#b49aff', W='#8fb4cc';
+const common={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#d5e8f5'}}},scales:{x:{ticks:{color:'#9db8cc'},grid:{color:'rgba(42,92,126,.25)'}},y:{ticks:{color:'#9db8cc'},grid:{color:'rgba(42,92,126,.25)'}}}};
+const g={...common};
+Chart.defaults.font.family='-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif';
+new Chart(c1,{type:'bar',data:{labels:['第一组 7天vs不发','第二组 7天vs3天','第三组 3天vs不发'],datasets:[
+  {label:'实验',backgroundColor:T,data:[63.03,60.17,52.31]},
+  {label:'对照',backgroundColor:C,data:[60.58,58.28,50.71]}
+]},options:{...g,plugins:{...g.plugins,tooltip:{callbacks:{label:x=>x.dataset.label+' '+x.raw+'%'}}}}});
+new Chart(c2,{type:'bar',data:{labels:['第一组','第二组','第三组'],datasets:[
+  {label:'实验到期盈利',backgroundColor:T,data:[12.57,7.87,4.38]},
+  {label:'对照到期盈利',backgroundColor:C,data:[19.26,21.48,1.23]}
+]},options:{...g,plugins:{...g.plugins,tooltip:{callbacks:{label:x=>x.dataset.label+' '+x.raw+'%'}}}}});
+new Chart(c3,{type:'bar',data:{labels:['G1实验','G1对照','G2实验','G2对照','G3实验','G3对照'],datasets:[
+  {label:'平均提单次数',backgroundColor:T,data:[2.255,2.186,1.996,2.116,1.548,1.483]},
+  {label:'平均放款次数',backgroundColor:A,data:[2.162,2.117,1.900,1.956,1.521,1.418]}
+]},options:g});
+new Chart(c4,{type:'scatter',data:{datasets:[
+  {label:'第一组',backgroundColor:T,data:[{x:2.45,y:-6.69}]},
+  {label:'第二组',backgroundColor:C,data:[{x:1.89,y:-13.61}]},
+  {label:'第三组',backgroundColor:G,data:[{x:1.60,y:3.15}]}
+]},options:{...g,scales:{x:{title:{display:true,text:'提单率 Lift (pp)',color:'#9db8cc'},ticks:{color:'#9db8cc'},grid:{color:'rgba(42,92,126,.25)'}},y:{title:{display:true,text:'盈利率差 (pp)',color:'#9db8cc'},ticks:{color:'#9db8cc'},grid:{color:'rgba(42,92,126,.25)'}}}}});
+new Chart(c5,{type:'bar',data:{labels:['G1 对齐7天','G2 实验7天/对照3天','G3 对齐3天'],datasets:[
+  {label:'实验窗内提单率',backgroundColor:T,data:[32.73,32.37,17.87]},
+  {label:'对照窗内提单率',backgroundColor:C,data:[25.27,18.50,13.68]}
+]},options:g});
+new Chart(c6,{type:'bar',data:{labels:['G1窗内','G2窗内','G3窗内'],datasets:[
+  {label:'实验',backgroundColor:T,data:[19.96,3.52,-1.65]},
+  {label:'对照同期',backgroundColor:C,data:[22.29,18.68,5.95]}
+]},options:g});
+new Chart(c7,{type:'bar',data:{labels:['G1实验用券','G1实验非用券','G1对照','G2实验用券','G2对照用券','G3实验用券'],datasets:[
+  {label:'到期盈利率%',backgroundColor:[G,C,W,C,G,C],data:[20.0,9.4,19.3,3.5,18.7,-1.6]}
+]},options:{...g,plugins:{legend:{display:false}}}});
+new Chart(c8,{type:'bar',data:{labels:['G1实验用券','G1对照','G2实验用券7天','G2对照用券3天','G3实验用券'],datasets:[
+  {label:'零还款金额占比%',backgroundColor:C,data:[8.0,13.5,20.3,8.4,9.4]}
+]},options:g});
+new Chart(c9,{type:'bar',data:{labels:['≤2k','2-5k','5-10k','>10k'],datasets:[
+  {label:'实验',backgroundColor:T,data:[60.43,58.48,53.28,55.00]},
+  {label:'对照',backgroundColor:C,data:[60.26,55.77,49.57,47.11]}
+]},options:g});
+new Chart(c10,{type:'bar',data:{labels:['≤2k','2-5k','5-10k','>10k'],datasets:[
+  {label:'实验',backgroundColor:T,data:[10.31,2.97,10.92,13.16]},
+  {label:'对照',backgroundColor:C,data:[9.83,22.48,11.29,25.52]}
+]},options:g});
+new Chart(c11,{type:'bar',data:{labels:['无进件 提单','有进件 提单','无进件 盈利','有进件 盈利'],datasets:[
+  {label:'实验',backgroundColor:T,data:[48.90,68.50,10.32,9.42]},
+  {label:'对照',backgroundColor:C,data:[46.47,66.79,12.16,20.38]}
+]},options:g});
+new Chart(c12,{type:'bar',data:{labels:['用信≤0.8','0.8-1','用信>1'],datasets:[
+  {label:'实验提单',backgroundColor:T,data:[57.46,57.20,60.26]},
+  {label:'对照提单',backgroundColor:C,data:[54.17,55.07,59.55]},
+  {label:'实验盈利',backgroundColor:G,data:[11.88,13.58,4.09]},
+  {label:'对照盈利',backgroundColor:A,data:[15.77,20.90,17.17]}
+]},options:g});
+new Chart(c13,{type:'bar',data:{labels:['≤5k 无进件','≤5k 有进件','>5k 无进件','>5k 有进件'],datasets:[
+  {label:'提单 Lift (pp)',backgroundColor:T,data:[0.33,1.88,10.08,1.75],yAxisID:'y'},
+  {label:'盈利差 (pp)',backgroundColor:C,data:[-7.98,-10.01,3.89,-11.62],yAxisID:'y1'}
+]},options:{...g,scales:{x:{ticks:{color:'#9db8cc'},grid:{color:'rgba(42,92,126,.25)'}},y:{position:'left',title:{display:true,text:'提单 Lift',color:'#9db8cc'},ticks:{color:'#9db8cc'},grid:{color:'rgba(42,92,126,.25)'}},y1:{position:'right',title:{display:true,text:'盈利差',color:'#9db8cc'},ticks:{color:'#9db8cc'},grid:{drawOnChartArea:false}}}}});
+</script>
+</body>
+</html>
