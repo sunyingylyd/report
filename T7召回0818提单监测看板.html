@@ -68,7 +68,7 @@ th{color:var(--muted);text-align:right}th:first-child,td:first-child{text-align:
   </div>
   <div class="card chart">
     <h3>流失天数提单率</h3>
-    <p>7–15 / 16–30 / 30–90 / 90–180 / 180d+</p>
+    <p>人数柱 + 提单率折线 · 7–15 / 16–30 / 30–90 / 90–180 / 180d+</p>
     <div class="box"><canvas id="c4"></canvas></div>
   </div>
 </div>
@@ -139,8 +139,11 @@ new Chart(c3,{type:'bar',data:{
 
 new Chart(c4,{type:'bar',data:{
   labels:DATA.churn.map(x=>x.bin),
-  datasets:[{label:'提单率%',data:DATA.churn.map(x=>x.pct),backgroundColor:A}]
-},options:g});
+  datasets:[
+    {label:'用户数',data:DATA.churn.map(x=>x.n_user),backgroundColor:'rgba(67,199,231,.35)',yAxisID:'y'},
+    {label:'提单率%',data:DATA.churn.map(x=>x.pct),type:'line',borderColor:P,yAxisID:'y1',tension:.2}
+  ]
+},options:{...g,scales:{x:g.scales.x,y:{...g.scales.y,position:'left'},y1:{position:'right',ticks:{color:'#9db8cc'},grid:{drawOnChartArea:false}}}}});
 
 document.getElementById('tb').innerHTML = DATA.strat.map(x=>
   `<tr><td>${x.strat}</td><td>${x.n_user.toLocaleString()}</td><td>${x.n_apply.toLocaleString()}</td><td>${x.pct.toFixed(2)}%</td></tr>`
