@@ -73,8 +73,8 @@ T0 获额结构：最好档 40.94% → 35.10%（-5.84pp），较差档 28.92% �
 <div class="chart"><h3>图2 到期逾期率 vs 到期盈利率</h3><p>仅已放款且 due_date 已过；8月到期偏少</p><div class="box"><canvas id="c2"></canvas></div></div>
 </div>
 <div class="grid g2" style="margin-top:14px">
-<div class="chart"><h3>图3 T0 获额客群结构</h3><p>按获额时点 363 分，分母=当月全部 T0</p><div class="box"><canvas id="c3"></canvas></div></div>
-<div class="chart"><h3>图4 当天提单客群结构</h3><p>同一套获额分，分母=当月当天提单</p><div class="box"><canvas id="c4"></canvas></div></div>
+<div class="chart"><h3>图3 T0 获额客群结构</h3><p>折线；纵轴不从 0 起，便于看结构变化。分母=当月全部 T0</p><div class="box"><canvas id="c3"></canvas></div></div>
+<div class="chart"><h3>图4 当天提单客群结构</h3><p>折线；纵轴不从 0 起。分母=当月当天提单</p><div class="box"><canvas id="c4"></canvas></div></div>
 </div>
 <div class="table"><table><thead><tr><th>月</th><th>T0</th><th>当天提单</th><th>当天提单率</th><th>获额均分</th><th>T0最好%</th><th>T0一般%</th><th>T0较差%</th><th>提单最好%</th><th>提单一般%</th><th>提单较差%</th><th>息费</th><th>到期单</th><th>逾期率</th><th>盈利率</th></tr></thead><tbody><tr><td>2026-01</td><td>19,520</td><td>10,325</td><td>52.89%</td><td>465.32</td><td>40.94%</td><td>30.14%</td><td>28.92%</td><td>39.36%</td><td>30.17%</td><td>30.47%</td><td>49.60%</td><td>10,197</td><td>36.60%</td><td>3.44%</td></tr><tr><td>2026-02</td><td>22,739</td><td>11,780</td><td>51.81%</td><td>465.16</td><td>39.96%</td><td>31.27%</td><td>28.77%</td><td>38.63%</td><td>31.27%</td><td>30.09%</td><td>48.92%</td><td>11,598</td><td>37.41%</td><td>1.20%</td></tr><tr><td>2026-03</td><td>22,198</td><td>10,293</td><td>46.37%</td><td>465.09</td><td>40.32%</td><td>29.68%</td><td>30.00%</td><td>38.35%</td><td>30.12%</td><td>31.54%</td><td>50.53%</td><td>10,160</td><td>36.40%</td><td>7.75%</td></tr><tr><td>2026-04</td><td>20,780</td><td>9,736</td><td>46.85%</td><td>465.64</td><td>41.22%</td><td>29.27%</td><td>29.51%</td><td>39.68%</td><td>29.54%</td><td>30.78%</td><td>51.47%</td><td>9,660</td><td>36.50%</td><td>8.49%</td></tr><tr><td>2026-05</td><td>23,875</td><td>10,783</td><td>45.16%</td><td>464.31</td><td>39.30%</td><td>29.98%</td><td>30.72%</td><td>37.08%</td><td>29.55%</td><td>33.38%</td><td>54.14%</td><td>10,569</td><td>37.81%</td><td>7.60%</td></tr><tr><td>2026-06</td><td>22,635</td><td>9,907</td><td>43.77%</td><td>462.53</td><td>37.28%</td><td>29.62%</td><td>33.10%</td><td>34.71%</td><td>28.71%</td><td>36.58%</td><td>58.37%</td><td>9,675</td><td>42.27%</td><td>4.37%</td></tr><tr><td>2026-07</td><td>23,275</td><td>9,626</td><td>41.36%</td><td>462.14</td><td>36.13%</td><td>29.81%</td><td>34.06%</td><td>32.95%</td><td>29.53%</td><td>37.51%</td><td>58.16%</td><td>9,468</td><td>42.54%</td><td>5.45%</td></tr><tr><td>2026-08</td><td>22,111</td><td>8,668</td><td>39.20%</td><td>461.75</td><td>35.10%</td><td>30.89%</td><td>34.01%</td><td>32.72%</td><td>31.20%</td><td>36.09%</td><td>60.23%</td><td>7,639</td><td>42.79%</td><td>7.36%</td></tr></tbody></table></div>
 
@@ -377,6 +377,23 @@ function stack(id, ds) {
     }
   });
 }
+function lineZoom(id, datasets) {
+  const vals = datasets.flatMap(d => d.data).filter(x => x != null);
+  const mn = Math.min(...vals), mx = Math.max(...vals);
+  const pad = Math.max(1.2, (mx - mn) * 0.22);
+  new Chart(document.getElementById(id), {
+    type:'line',
+    data:{labels:D.ym, datasets},
+    options:{responsive:true, maintainAspectRatio:false, interaction:{mode:'index', intersect:false},
+      plugins:{legend:{labels:{color:'#eff8ff'}}},
+      scales:{
+        x:{ticks:{color:'#aac5da'}, grid:{display:false}},
+        y:{type:'linear', min: +(mn - pad).toFixed(1), max: +(mx + pad).toFixed(1), beginAtZero:false,
+          ticks:{color:'#aac5da'}, grid:{color:'rgba(42,92,126,.25)'}}
+      }
+    }
+  });
+}
 const lw = 2.4;
 line('c1', [
   {label:'当天提单率%', data:D.apply, borderColor:col.cy, backgroundColor:'transparent', tension:.25, yAxisID:'y', borderWidth:lw, pointRadius:3},
@@ -386,15 +403,15 @@ line('c2', [
   {label:'逾期率%', data:D.overdue, borderColor:col.poor, backgroundColor:'transparent', tension:.25, yAxisID:'y', borderWidth:lw},
   {label:'盈利率%', data:D.profit, borderColor:col.good, backgroundColor:'transparent', tension:.25, yAxisID:'y2', borderWidth:lw}
 ], true);
-stack('c3', [
-  {label:'最好', data:D.t0_good, backgroundColor:col.good},
-  {label:'一般', data:D.t0_mid, backgroundColor:col.mid},
-  {label:'较差', data:D.t0_poor, backgroundColor:col.poor}
+lineZoom('c3', [
+  {label:'最好%', data:D.t0_good, borderColor:col.good, backgroundColor:'transparent', tension:.25, borderWidth:lw, pointRadius:3},
+  {label:'一般%', data:D.t0_mid, borderColor:col.mid, backgroundColor:'transparent', tension:.25, borderWidth:lw, pointRadius:3},
+  {label:'较差%', data:D.t0_poor, borderColor:col.poor, backgroundColor:'transparent', tension:.25, borderWidth:lw, pointRadius:3}
 ]);
-stack('c4', [
-  {label:'最好', data:D.ap_good, backgroundColor:col.good},
-  {label:'一般', data:D.ap_mid, backgroundColor:col.mid},
-  {label:'较差', data:D.ap_poor, backgroundColor:col.poor}
+lineZoom('c4', [
+  {label:'最好%', data:D.ap_good, borderColor:col.good, backgroundColor:'transparent', tension:.25, borderWidth:lw, pointRadius:3},
+  {label:'一般%', data:D.ap_mid, borderColor:col.mid, backgroundColor:'transparent', tension:.25, borderWidth:lw, pointRadius:3},
+  {label:'较差%', data:D.ap_poor, borderColor:col.poor, backgroundColor:'transparent', tension:.25, borderWidth:lw, pointRadius:3}
 ]);
 line('c5', [
   {label:'最好', data:D.r_good, borderColor:col.good, backgroundColor:'transparent', tension:.25, borderWidth:lw},
