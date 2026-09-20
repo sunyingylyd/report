@@ -25,7 +25,9 @@ h2{font-size:24px;margin:44px 0 10px}h3{font-size:17px;margin:22px 0 8px}
 .table{overflow-x:auto;margin:12px 0}table{width:100%;border-collapse:collapse;font-size:13px}
 th,td{padding:8px 10px;border-bottom:1px solid rgba(42,92,126,.45);text-align:right;white-space:nowrap}
 th{color:var(--muted);background:rgba(12,48,78,.65);font-weight:600}th:first-child,td:first-child{text-align:left}
-pre.sql{background:#081726;border:1px solid var(--line);border-radius:14px;padding:18px;overflow:auto;max-height:820px;font-size:12px;line-height:1.6;color:#bfe0f2;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;white-space:pre;tab-size:2}
+pre.sql{background:#081726;border:1px solid var(--line);border-radius:14px;padding:18px;overflow:auto;max-height:480px;font-size:12px;line-height:1.6;color:#bfe0f2;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;white-space:pre;tab-size:2}
+details.code{margin:12px 0;border:1px solid var(--line);border-radius:12px;background:rgba(10,41,68,.55);padding:2px 16px 8px}
+details.code summary{cursor:pointer;color:var(--cy);font-size:14px;font-weight:700;padding:12px 0}
 .foot{color:#7fa6c2;font-size:12.5px;margin-top:50px;border-top:1px solid var(--line);padding-top:16px;line-height:1.9}
 @media(max-width:900px){.g2,.g4{grid-template-columns:1fr}}
 </style>
@@ -100,9 +102,9 @@ T0 获额结构：最好档 40.94% → 35.10%（-5.84pp），较差档 28.92% �
 <li>当天提单不卡 is_due / is_remit。息费不卡放款。盈利、逾期要求 is_remit=1 且已到期。</li>
 </ul>
 
-<h2>附录：完整 PGSQL</h2>
-<p class="desc">在 kaby_dw 执行；<code>SET search_path TO wangchuanliang, public;</code>。三个结果集依次为阈值、月度总体、月度×三档。同目录文件 <code>appendix_t0_risk363_full.sql</code>。</p>
-<pre class="sql">-- =============================================================================
+<h2>附录：完整 PGSQL（分模块）</h2>
+<p class="desc">在 kaby_dw 按模块顺序执行；<code>SET search_path TO wangchuanliang, public;</code>。模块 6–8 为三个结果集：阈值、月度总体、月度×三档。完整脚本：<code>appendix_t0_risk363_full.sql</code>。</p>
+<details class="code"><summary>口径说明</summary><pre class="sql">-- =============================================================================
 -- T0 结清0在贷 × 获额时点 KabyBXGBoost363Dpd7Cre
 -- 月度总体 + 三档：当天提单率 / 提单结构 / 加权息费 / 到期盈利 / 整笔逾期
 -- 库：kaby_dw  GaussDB    SET search_path TO wangchuanliang, public;
@@ -117,15 +119,13 @@ T0 获额结构：最好档 40.94% → 35.10%（-5.84pp），较差档 28.92% �
 -- 盈利：Σ(repayment_record_copy.amount, payin_date&lt;=due_date)/Σremit_amt - 1
 -- 非逾期：repaid_date &gt; 2000-01-01 AND repaid_date &lt;= due_date
 -- 逾期：其余到期放款单（含空值、1969-12-31、晚于到期日）
--- =============================================================================
-
-SET search_path TO wangchuanliang, public;
-SET statement_timeout = 0;
-
-DROP TABLE IF EXISTS tmp_m_origin;
+-- =============================================================================</pre></details>
+<details class="code"><summary>模块 0 · 环境</summary><pre class="sql">SET search_path TO wangchuanliang, public;
+SET statement_timeout = 0;</pre></details>
+<details class="code"><summary>模块 1 · T0 结清 0 在贷获额快照（tmp_m_origin）</summary><pre class="sql">DROP TABLE IF EXISTS tmp_m_origin;
 CREATE TEMP TABLE tmp_m_origin AS
 WITH params AS (
-    SELECT DATE '2026-01-01' AS start_date, DATE '2026-09-01' AS end_date
+    SELECT DATE &#x27;2026-01-01&#x27; AS start_date, DATE &#x27;2026-09-01&#x27; AS end_date
 ), raw_offer AS (
     SELECT DISTINCT ON (v.user_id, v.serial_id)
         v.user_id, v.serial_id, v.vir_date::date AS vir_date, TO_TIMESTAMP(v.vir_unix) AS vir_time
@@ -139,7 +139,7 @@ WITH params AS (
     SELECT r.*, LAG(r.vir_time) OVER (PARTITION BY r.user_id ORDER BY r.vir_time, r.serial_id) AS prev_vir_time
     FROM raw_offer r
 ), batched AS (
-    SELECT l.*, SUM(CASE WHEN l.prev_vir_time IS NULL OR l.vir_time - l.prev_vir_time &gt; INTERVAL '20 seconds' THEN 1 ELSE 0 END)
+    SELECT l.*, SUM(CASE WHEN l.prev_vir_time IS NULL OR l.vir_time - l.prev_vir_time &gt; INTERVAL &#x27;20 seconds&#x27; THEN 1 ELSE 0 END)
       OVER (PARTITION BY l.user_id ORDER BY l.vir_time, l.serial_id ROWS UNBOUNDED PRECEDING) AS batch_id
     FROM lagged l
 ), dedup_offer AS (
@@ -160,7 +160,7 @@ all_orders AS (
     SELECT o.user_id, o.serial_id, o.repaid_time, o.repaid_date
     FROM all_orders o
     WHERE o.is_remit = 1 AND (o.is_repaid = 1 OR o.loan_status_code = 7)
-      AND o.repaid_time &gt; TIMESTAMP '2000-01-01 00:00:00'
+      AND o.repaid_time &gt; TIMESTAMP &#x27;2000-01-01 00:00:00&#x27;
       AND NOT EXISTS (
           SELECT 1 FROM all_orders x
           WHERE x.user_id = o.user_id AND x.serial_id &lt;&gt; o.serial_id AND x.apply_time &lt; o.repaid_time
@@ -173,9 +173,8 @@ all_orders AS (
     INNER JOIN clean_settlement s
         ON s.user_id = e.user_id AND s.repaid_date = e.vir_date AND e.vir_time &gt;= s.repaid_time
 )
-SELECT user_id, credit_serial_id, vir_date, vir_time FROM paired WHERE day_rn = 1;
-
-DROP TABLE IF EXISTS tmp_cuts;
+SELECT user_id, credit_serial_id, vir_date, vir_time FROM paired WHERE day_rn = 1;</pre></details>
+<details class="code"><summary>模块 2 · 获额分 P30 / P60（tmp_cuts）</summary><pre class="sql">DROP TABLE IF EXISTS tmp_cuts;
 CREATE TEMP TABLE tmp_cuts AS
 SELECT
     PERCENTILE_CONT(0.30) WITHIN GROUP (ORDER BY m.kabybxgboost363dpd7cre) AS p30,
@@ -183,9 +182,8 @@ SELECT
 FROM tmp_m_origin t
 INNER JOIN model_result_copy m ON m.serial_id = t.credit_serial_id
 WHERE m.kabybxgboost363dpd7cre IS NOT NULL
-  AND m.kabybxgboost363dpd7cre &lt;&gt; -9999999;
-
-DROP TABLE IF EXISTS tmp_first_apply;
+  AND m.kabybxgboost363dpd7cre &lt;&gt; -9999999;</pre></details>
+<details class="code"><summary>模块 3 · 获额后首次提单（tmp_first_apply）</summary><pre class="sql">DROP TABLE IF EXISTS tmp_first_apply;
 CREATE TEMP TABLE tmp_first_apply AS
 SELECT user_id, vir_date, serial_id, apply_date, apply_time, due_date,
        is_remit, remit_amt, pre_amt, post_amt, repaid_date
@@ -196,14 +194,13 @@ FROM (
     FROM tmp_m_origin t
     INNER JOIN order_loan_f_v2_copy a
       ON a.user_id = t.user_id AND a.apply_time &gt;= t.vir_time
-) z WHERE rn = 1;
-
-DROP TABLE IF EXISTS tmp_base;
+) z WHERE rn = 1;</pre></details>
+<details class="code"><summary>模块 4 · 挂获额分、三档、当天提单（tmp_base）</summary><pre class="sql">DROP TABLE IF EXISTS tmp_base;
 CREATE TEMP TABLE tmp_base AS
 SELECT
     t.user_id,
     t.vir_date,
-    DATE_TRUNC('month', t.vir_date)::date AS ym,
+    DATE_TRUNC(&#x27;month&#x27;, t.vir_date)::date AS ym,
     t.credit_serial_id,
     CASE
       WHEN m.kabybxgboost363dpd7cre IS NULL THEN NULL
@@ -211,10 +208,10 @@ SELECT
       ELSE m.kabybxgboost363dpd7cre
     END AS score,
     CASE
-      WHEN m.kabybxgboost363dpd7cre IS NULL OR m.kabybxgboost363dpd7cre = -9999999 THEN '无分'
-      WHEN m.kabybxgboost363dpd7cre &lt;= (SELECT p30 FROM tmp_cuts) THEN '较差'
-      WHEN m.kabybxgboost363dpd7cre &lt;= (SELECT p60 FROM tmp_cuts) THEN '一般'
-      ELSE '最好'
+      WHEN m.kabybxgboost363dpd7cre IS NULL OR m.kabybxgboost363dpd7cre = -9999999 THEN &#x27;无分&#x27;
+      WHEN m.kabybxgboost363dpd7cre &lt;= (SELECT p30 FROM tmp_cuts) THEN &#x27;较差&#x27;
+      WHEN m.kabybxgboost363dpd7cre &lt;= (SELECT p60 FROM tmp_cuts) THEN &#x27;一般&#x27;
+      ELSE &#x27;最好&#x27;
     END AS tier,
     CASE WHEN f.apply_date = t.vir_date THEN 1 ELSE 0 END AS is_same_day,
     f.serial_id AS apply_serial_id,
@@ -226,9 +223,8 @@ SELECT
     f.repaid_date
 FROM tmp_m_origin t
 LEFT JOIN model_result_copy m ON m.serial_id = t.credit_serial_id
-LEFT JOIN tmp_first_apply f ON f.user_id = t.user_id AND f.vir_date = t.vir_date;
-
-DROP TABLE IF EXISTS tmp_repay;
+LEFT JOIN tmp_first_apply f ON f.user_id = t.user_id AND f.vir_date = t.vir_date;</pre></details>
+<details class="code"><summary>模块 5 · 到期日及之前还款（tmp_repay）</summary><pre class="sql">DROP TABLE IF EXISTS tmp_repay;
 CREATE TEMP TABLE tmp_repay AS
 SELECT b.apply_serial_id, SUM(r.amount) AS repay_amt
 FROM tmp_base b
@@ -238,38 +234,36 @@ WHERE b.is_same_day = 1
   AND COALESCE(b.remit_amt, 0) &gt; 0
   AND b.due_date &lt; CURRENT_DATE
   AND r.payin_date &lt;= b.due_date
-GROUP BY b.apply_serial_id;
-
--- ---------------------------------------------------------------------------
+GROUP BY b.apply_serial_id;</pre></details>
+<details class="code"><summary>模块 6 · 结果：阈值</summary><pre class="sql">-- ---------------------------------------------------------------------------
 -- 结果1：阈值
 -- ---------------------------------------------------------------------------
-SELECT p30, p60 FROM tmp_cuts;
-
--- ---------------------------------------------------------------------------
+SELECT p30, p60 FROM tmp_cuts;</pre></details>
+<details class="code"><summary>模块 7 · 结果：月度总体</summary><pre class="sql">-- ---------------------------------------------------------------------------
 -- 结果2：月度总体
 -- ---------------------------------------------------------------------------
 SELECT
-    TO_CHAR(ym, 'YYYY-MM') AS ym,
+    TO_CHAR(ym, &#x27;YYYY-MM&#x27;) AS ym,
     COUNT(*) AS n_t0,
     SUM(is_same_day) AS n_same_day,
     ROUND(100.0 * AVG(is_same_day::numeric), 2) AS apply_rate_pct,
     ROUND(AVG(score)::numeric, 2) AS mean_score_t0,
     ROUND(AVG(CASE WHEN is_same_day = 1 THEN score END)::numeric, 2) AS mean_score_apply,
-    SUM(CASE WHEN tier = '较差' THEN 1 ELSE 0 END) AS n_t0_poor,
-    SUM(CASE WHEN tier = '一般' THEN 1 ELSE 0 END) AS n_t0_mid,
-    SUM(CASE WHEN tier = '最好' THEN 1 ELSE 0 END) AS n_t0_good,
-    SUM(CASE WHEN tier = '无分' THEN 1 ELSE 0 END) AS n_t0_noscored,
-    ROUND(100.0 * SUM(CASE WHEN tier = '较差' THEN 1 ELSE 0 END) / COUNT(*), 2) AS pct_t0_poor,
-    ROUND(100.0 * SUM(CASE WHEN tier = '一般' THEN 1 ELSE 0 END) / COUNT(*), 2) AS pct_t0_mid,
-    ROUND(100.0 * SUM(CASE WHEN tier = '最好' THEN 1 ELSE 0 END) / COUNT(*), 2) AS pct_t0_good,
-    SUM(CASE WHEN is_same_day = 1 AND tier = '较差' THEN 1 ELSE 0 END) AS n_apply_poor,
-    SUM(CASE WHEN is_same_day = 1 AND tier = '一般' THEN 1 ELSE 0 END) AS n_apply_mid,
-    SUM(CASE WHEN is_same_day = 1 AND tier = '最好' THEN 1 ELSE 0 END) AS n_apply_good,
-    ROUND(100.0 * SUM(CASE WHEN is_same_day = 1 AND tier = '较差' THEN 1 ELSE 0 END)
+    SUM(CASE WHEN tier = &#x27;较差&#x27; THEN 1 ELSE 0 END) AS n_t0_poor,
+    SUM(CASE WHEN tier = &#x27;一般&#x27; THEN 1 ELSE 0 END) AS n_t0_mid,
+    SUM(CASE WHEN tier = &#x27;最好&#x27; THEN 1 ELSE 0 END) AS n_t0_good,
+    SUM(CASE WHEN tier = &#x27;无分&#x27; THEN 1 ELSE 0 END) AS n_t0_noscored,
+    ROUND(100.0 * SUM(CASE WHEN tier = &#x27;较差&#x27; THEN 1 ELSE 0 END) / COUNT(*), 2) AS pct_t0_poor,
+    ROUND(100.0 * SUM(CASE WHEN tier = &#x27;一般&#x27; THEN 1 ELSE 0 END) / COUNT(*), 2) AS pct_t0_mid,
+    ROUND(100.0 * SUM(CASE WHEN tier = &#x27;最好&#x27; THEN 1 ELSE 0 END) / COUNT(*), 2) AS pct_t0_good,
+    SUM(CASE WHEN is_same_day = 1 AND tier = &#x27;较差&#x27; THEN 1 ELSE 0 END) AS n_apply_poor,
+    SUM(CASE WHEN is_same_day = 1 AND tier = &#x27;一般&#x27; THEN 1 ELSE 0 END) AS n_apply_mid,
+    SUM(CASE WHEN is_same_day = 1 AND tier = &#x27;最好&#x27; THEN 1 ELSE 0 END) AS n_apply_good,
+    ROUND(100.0 * SUM(CASE WHEN is_same_day = 1 AND tier = &#x27;较差&#x27; THEN 1 ELSE 0 END)
         / NULLIF(SUM(is_same_day), 0), 2) AS pct_apply_poor,
-    ROUND(100.0 * SUM(CASE WHEN is_same_day = 1 AND tier = '一般' THEN 1 ELSE 0 END)
+    ROUND(100.0 * SUM(CASE WHEN is_same_day = 1 AND tier = &#x27;一般&#x27; THEN 1 ELSE 0 END)
         / NULLIF(SUM(is_same_day), 0), 2) AS pct_apply_mid,
-    ROUND(100.0 * SUM(CASE WHEN is_same_day = 1 AND tier = '最好' THEN 1 ELSE 0 END)
+    ROUND(100.0 * SUM(CASE WHEN is_same_day = 1 AND tier = &#x27;最好&#x27; THEN 1 ELSE 0 END)
         / NULLIF(SUM(is_same_day), 0), 2) AS pct_apply_good,
     ROUND((
         SUM(CASE WHEN is_same_day = 1 THEN COALESCE(pre_amt, 0) + COALESCE(post_amt, 0) ELSE 0 END)
@@ -288,7 +282,7 @@ SELECT
         100.0 * SUM(CASE
             WHEN is_same_day = 1 AND is_remit = 1 AND COALESCE(remit_amt, 0) &gt; 0
              AND due_date &lt; CURRENT_DATE
-             AND NOT (repaid_date &gt; DATE '2000-01-01' AND repaid_date &lt;= due_date)
+             AND NOT (repaid_date &gt; DATE &#x27;2000-01-01&#x27; AND repaid_date &lt;= due_date)
             THEN 1 ELSE 0 END)
         / NULLIF(SUM(CASE WHEN is_same_day = 1 AND is_remit = 1 AND COALESCE(remit_amt, 0) &gt; 0
                           AND due_date &lt; CURRENT_DATE THEN 1 ELSE 0 END), 0)
@@ -296,13 +290,12 @@ SELECT
 FROM tmp_base b
 LEFT JOIN tmp_repay p ON p.apply_serial_id = b.apply_serial_id
 GROUP BY ym
-ORDER BY ym;
-
--- ---------------------------------------------------------------------------
+ORDER BY ym;</pre></details>
+<details class="code"><summary>模块 8 · 结果：月度 × 三档</summary><pre class="sql">-- ---------------------------------------------------------------------------
 -- 结果3：月度 × 三档
 -- ---------------------------------------------------------------------------
 SELECT
-    TO_CHAR(ym, 'YYYY-MM') AS ym,
+    TO_CHAR(ym, &#x27;YYYY-MM&#x27;) AS ym,
     tier,
     COUNT(*) AS n_t0,
     SUM(is_same_day) AS n_same_day,
@@ -325,7 +318,7 @@ SELECT
         100.0 * SUM(CASE
             WHEN is_same_day = 1 AND is_remit = 1 AND COALESCE(remit_amt, 0) &gt; 0
              AND due_date &lt; CURRENT_DATE
-             AND NOT (repaid_date &gt; DATE '2000-01-01' AND repaid_date &lt;= due_date)
+             AND NOT (repaid_date &gt; DATE &#x27;2000-01-01&#x27; AND repaid_date &lt;= due_date)
             THEN 1 ELSE 0 END)
         / NULLIF(SUM(CASE WHEN is_same_day = 1 AND is_remit = 1 AND COALESCE(remit_amt, 0) &gt; 0
                           AND due_date &lt; CURRENT_DATE THEN 1 ELSE 0 END), 0)
@@ -333,8 +326,7 @@ SELECT
 FROM tmp_base b
 LEFT JOIN tmp_repay p ON p.apply_serial_id = b.apply_serial_id
 GROUP BY ym, tier
-ORDER BY ym, CASE tier WHEN '最好' THEN 1 WHEN '一般' THEN 2 WHEN '较差' THEN 3 ELSE 4 END;
-</pre>
+ORDER BY ym, CASE tier WHEN &#x27;最好&#x27; THEN 1 WHEN &#x27;一般&#x27; THEN 2 WHEN &#x27;较差&#x27; THEN 3 ELSE 4 END;</pre></details>
 <p class="foot">数据：kaby_dw · wangchuanliang · 2026-01-01～2026-08-31 · 报告生成于分析当日库内 CURRENT_DATE</p>
 </main>
 <script>

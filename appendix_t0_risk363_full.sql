@@ -15,9 +15,11 @@
 -- 逾期：其余到期放款单（含空值、1969-12-31、晚于到期日）
 -- =============================================================================
 
+-- [M0] 环境
 SET search_path TO wangchuanliang, public;
 SET statement_timeout = 0;
 
+-- [M1] T0 结清0在贷获额快照
 DROP TABLE IF EXISTS tmp_m_origin;
 CREATE TEMP TABLE tmp_m_origin AS
 WITH params AS (
@@ -71,6 +73,7 @@ all_orders AS (
 )
 SELECT user_id, credit_serial_id, vir_date, vir_time FROM paired WHERE day_rn = 1;
 
+-- [M2] 全量 T0 获额分 P30 / P60
 DROP TABLE IF EXISTS tmp_cuts;
 CREATE TEMP TABLE tmp_cuts AS
 SELECT
@@ -81,6 +84,7 @@ INNER JOIN model_result_copy m ON m.serial_id = t.credit_serial_id
 WHERE m.kabybxgboost363dpd7cre IS NOT NULL
   AND m.kabybxgboost363dpd7cre <> -9999999;
 
+-- [M3] 获额后首次提单
 DROP TABLE IF EXISTS tmp_first_apply;
 CREATE TEMP TABLE tmp_first_apply AS
 SELECT user_id, vir_date, serial_id, apply_date, apply_time, due_date,
@@ -94,6 +98,7 @@ FROM (
       ON a.user_id = t.user_id AND a.apply_time >= t.vir_time
 ) z WHERE rn = 1;
 
+-- [M4] 获额分、三档、当天提单标记
 DROP TABLE IF EXISTS tmp_base;
 CREATE TEMP TABLE tmp_base AS
 SELECT
@@ -124,6 +129,7 @@ FROM tmp_m_origin t
 LEFT JOIN model_result_copy m ON m.serial_id = t.credit_serial_id
 LEFT JOIN tmp_first_apply f ON f.user_id = t.user_id AND f.vir_date = t.vir_date;
 
+-- [M5] 到期日及之前还款
 DROP TABLE IF EXISTS tmp_repay;
 CREATE TEMP TABLE tmp_repay AS
 SELECT b.apply_serial_id, SUM(r.amount) AS repay_amt
@@ -136,11 +142,13 @@ WHERE b.is_same_day = 1
   AND r.payin_date <= b.due_date
 GROUP BY b.apply_serial_id;
 
+-- [M6] 结果：阈值
 -- ---------------------------------------------------------------------------
 -- 结果1：阈值
 -- ---------------------------------------------------------------------------
 SELECT p30, p60 FROM tmp_cuts;
 
+-- [M7] 结果：月度总体
 -- ---------------------------------------------------------------------------
 -- 结果2：月度总体
 -- ---------------------------------------------------------------------------
@@ -194,6 +202,7 @@ LEFT JOIN tmp_repay p ON p.apply_serial_id = b.apply_serial_id
 GROUP BY ym
 ORDER BY ym;
 
+-- [M8] 结果：月度 × 三档
 -- ---------------------------------------------------------------------------
 -- 结果3：月度 × 三档
 -- ---------------------------------------------------------------------------
