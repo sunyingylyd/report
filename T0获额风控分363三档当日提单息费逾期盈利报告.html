@@ -25,9 +25,7 @@ h2{font-size:24px;margin:44px 0 10px}h3{font-size:17px;margin:22px 0 8px}
 .table{overflow-x:auto;margin:12px 0}table{width:100%;border-collapse:collapse;font-size:13px}
 th,td{padding:8px 10px;border-bottom:1px solid rgba(42,92,126,.45);text-align:right;white-space:nowrap}
 th{color:var(--muted);background:rgba(12,48,78,.65);font-weight:600}th:first-child,td:first-child{text-align:left}
-pre.sql{background:#081726;border:1px solid var(--line);border-radius:14px;padding:18px;overflow:auto;max-height:480px;font-size:12px;line-height:1.6;color:#bfe0f2;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;white-space:pre;tab-size:2}
-details.code{margin:12px 0;border:1px solid var(--line);border-radius:12px;background:rgba(10,41,68,.55);padding:2px 16px 8px}
-details.code summary{cursor:pointer;color:var(--cy);font-size:14px;font-weight:700;padding:12px 0}
+pre.sql{background:#081726;border:1px solid var(--line);border-radius:14px;padding:18px;overflow:auto;max-height:820px;font-size:12px;line-height:1.6;color:#bfe0f2;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;white-space:pre;tab-size:2}
 .foot{color:#7fa6c2;font-size:12.5px;margin-top:50px;border-top:1px solid var(--line);padding-top:16px;line-height:1.9}
 @media(max-width:900px){.g2,.g4{grid-template-columns:1fr}}
 </style>
@@ -64,7 +62,7 @@ T0 获额结构：最好档 40.94% → 35.10%（-5.84pp），较差档 28.92% �
 <section class="grid g4" style="margin-top:18px">
 <article class="card"><div class="label">当天提单率 1月→8月</div><div class="num">52.89%→39.20%</div><div class="sub">-13.69pp</div></article>
 <article class="card"><div class="label">当天提单息费</div><div class="num">49.60%→60.23%</div><div class="sub">+10.63pp</div></article>
-<article class="card"><div class="label">T0 较差档占比</div><div class="num">28.92%→34.01%</div><div class="sub">+5.09pp</div></article>
+<article class="card"><div class="label">T0 获额档占比</div><div class="num">28.92%→34.01%</div><div class="sub">+5.09pp</div></article>
 <article class="card"><div class="label">当天提单较差档占比</div><div class="num">30.47%→36.09%</div><div class="sub">+5.62pp</div></article>
 </section>
 
@@ -102,9 +100,9 @@ T0 获额结构：最好档 40.94% → 35.10%（-5.84pp），较差档 28.92% �
 <li>当天提单不卡 is_due / is_remit。息费不卡放款。盈利、逾期要求 is_remit=1 且已到期。</li>
 </ul>
 
-<h2>附录：完整 PGSQL（分模块）</h2>
-<p class="desc">在 kaby_dw 按模块顺序执行；<code>SET search_path TO wangchuanliang, public;</code>。模块 6–8 为三个结果集：阈值、月度总体、月度×三档。完整脚本：<code>appendix_t0_risk363_full.sql</code>。</p>
-<details class="code"><summary>口径说明</summary><pre class="sql">-- =============================================================================
+<h2>附录：完整 PGSQL</h2>
+<p class="desc">在 kaby_dw 执行；<code>SET search_path TO wangchuanliang, public;</code>。三个结果集依次为阈值、月度总体、月度×三档。同目录文件 <code>appendix_t0_risk363_full.sql</code>。</p>
+<pre class="sql">-- =============================================================================
 -- T0 结清0在贷 × 获额时点 KabyBXGBoost363Dpd7Cre
 -- 月度总体 + 三档：当天提单率 / 提单结构 / 加权息费 / 到期盈利 / 整笔逾期
 -- 库：kaby_dw  GaussDB    SET search_path TO wangchuanliang, public;
@@ -119,10 +117,14 @@ T0 获额结构：最好档 40.94% → 35.10%（-5.84pp），较差档 28.92% �
 -- 盈利：Σ(repayment_record_copy.amount, payin_date&lt;=due_date)/Σremit_amt - 1
 -- 非逾期：repaid_date &gt; 2000-01-01 AND repaid_date &lt;= due_date
 -- 逾期：其余到期放款单（含空值、1969-12-31、晚于到期日）
--- =============================================================================</pre></details>
-<details class="code"><summary>模块 0 · 环境</summary><pre class="sql">SET search_path TO wangchuanliang, public;
-SET statement_timeout = 0;</pre></details>
-<details class="code"><summary>模块 1 · T0 结清 0 在贷获额快照（tmp_m_origin）</summary><pre class="sql">DROP TABLE IF EXISTS tmp_m_origin;
+-- =============================================================================
+
+-- [M0] 环境
+SET search_path TO wangchuanliang, public;
+SET statement_timeout = 0;
+
+-- [M1] T0 结清0在贷获额快照
+DROP TABLE IF EXISTS tmp_m_origin;
 CREATE TEMP TABLE tmp_m_origin AS
 WITH params AS (
     SELECT DATE &#x27;2026-01-01&#x27; AS start_date, DATE &#x27;2026-09-01&#x27; AS end_date
@@ -173,8 +175,10 @@ all_orders AS (
     INNER JOIN clean_settlement s
         ON s.user_id = e.user_id AND s.repaid_date = e.vir_date AND e.vir_time &gt;= s.repaid_time
 )
-SELECT user_id, credit_serial_id, vir_date, vir_time FROM paired WHERE day_rn = 1;</pre></details>
-<details class="code"><summary>模块 2 · 获额分 P30 / P60（tmp_cuts）</summary><pre class="sql">DROP TABLE IF EXISTS tmp_cuts;
+SELECT user_id, credit_serial_id, vir_date, vir_time FROM paired WHERE day_rn = 1;
+
+-- [M2] 全量 T0 获额分 P30 / P60
+DROP TABLE IF EXISTS tmp_cuts;
 CREATE TEMP TABLE tmp_cuts AS
 SELECT
     PERCENTILE_CONT(0.30) WITHIN GROUP (ORDER BY m.kabybxgboost363dpd7cre) AS p30,
@@ -182,8 +186,10 @@ SELECT
 FROM tmp_m_origin t
 INNER JOIN model_result_copy m ON m.serial_id = t.credit_serial_id
 WHERE m.kabybxgboost363dpd7cre IS NOT NULL
-  AND m.kabybxgboost363dpd7cre &lt;&gt; -9999999;</pre></details>
-<details class="code"><summary>模块 3 · 获额后首次提单（tmp_first_apply）</summary><pre class="sql">DROP TABLE IF EXISTS tmp_first_apply;
+  AND m.kabybxgboost363dpd7cre &lt;&gt; -9999999;
+
+-- [M3] 获额后首次提单
+DROP TABLE IF EXISTS tmp_first_apply;
 CREATE TEMP TABLE tmp_first_apply AS
 SELECT user_id, vir_date, serial_id, apply_date, apply_time, due_date,
        is_remit, remit_amt, pre_amt, post_amt, repaid_date
@@ -194,8 +200,10 @@ FROM (
     FROM tmp_m_origin t
     INNER JOIN order_loan_f_v2_copy a
       ON a.user_id = t.user_id AND a.apply_time &gt;= t.vir_time
-) z WHERE rn = 1;</pre></details>
-<details class="code"><summary>模块 4 · 挂获额分、三档、当天提单（tmp_base）</summary><pre class="sql">DROP TABLE IF EXISTS tmp_base;
+) z WHERE rn = 1;
+
+-- [M4] 获额分、三档、当天提单标记
+DROP TABLE IF EXISTS tmp_base;
 CREATE TEMP TABLE tmp_base AS
 SELECT
     t.user_id,
@@ -223,8 +231,10 @@ SELECT
     f.repaid_date
 FROM tmp_m_origin t
 LEFT JOIN model_result_copy m ON m.serial_id = t.credit_serial_id
-LEFT JOIN tmp_first_apply f ON f.user_id = t.user_id AND f.vir_date = t.vir_date;</pre></details>
-<details class="code"><summary>模块 5 · 到期日及之前还款（tmp_repay）</summary><pre class="sql">DROP TABLE IF EXISTS tmp_repay;
+LEFT JOIN tmp_first_apply f ON f.user_id = t.user_id AND f.vir_date = t.vir_date;
+
+-- [M5] 到期日及之前还款
+DROP TABLE IF EXISTS tmp_repay;
 CREATE TEMP TABLE tmp_repay AS
 SELECT b.apply_serial_id, SUM(r.amount) AS repay_amt
 FROM tmp_base b
@@ -234,12 +244,16 @@ WHERE b.is_same_day = 1
   AND COALESCE(b.remit_amt, 0) &gt; 0
   AND b.due_date &lt; CURRENT_DATE
   AND r.payin_date &lt;= b.due_date
-GROUP BY b.apply_serial_id;</pre></details>
-<details class="code"><summary>模块 6 · 结果：阈值</summary><pre class="sql">-- ---------------------------------------------------------------------------
+GROUP BY b.apply_serial_id;
+
+-- [M6] 结果：阈值
+-- ---------------------------------------------------------------------------
 -- 结果1：阈值
 -- ---------------------------------------------------------------------------
-SELECT p30, p60 FROM tmp_cuts;</pre></details>
-<details class="code"><summary>模块 7 · 结果：月度总体</summary><pre class="sql">-- ---------------------------------------------------------------------------
+SELECT p30, p60 FROM tmp_cuts;
+
+-- [M7] 结果：月度总体
+-- ---------------------------------------------------------------------------
 -- 结果2：月度总体
 -- ---------------------------------------------------------------------------
 SELECT
@@ -290,8 +304,10 @@ SELECT
 FROM tmp_base b
 LEFT JOIN tmp_repay p ON p.apply_serial_id = b.apply_serial_id
 GROUP BY ym
-ORDER BY ym;</pre></details>
-<details class="code"><summary>模块 8 · 结果：月度 × 三档</summary><pre class="sql">-- ---------------------------------------------------------------------------
+ORDER BY ym;
+
+-- [M8] 结果：月度 × 三档
+-- ---------------------------------------------------------------------------
 -- 结果3：月度 × 三档
 -- ---------------------------------------------------------------------------
 SELECT
@@ -326,7 +342,8 @@ SELECT
 FROM tmp_base b
 LEFT JOIN tmp_repay p ON p.apply_serial_id = b.apply_serial_id
 GROUP BY ym, tier
-ORDER BY ym, CASE tier WHEN &#x27;最好&#x27; THEN 1 WHEN &#x27;一般&#x27; THEN 2 WHEN &#x27;较差&#x27; THEN 3 ELSE 4 END;</pre></details>
+ORDER BY ym, CASE tier WHEN &#x27;最好&#x27; THEN 1 WHEN &#x27;一般&#x27; THEN 2 WHEN &#x27;较差&#x27; THEN 3 ELSE 4 END;
+</pre>
 <p class="foot">数据：kaby_dw · wangchuanliang · 2026-01-01～2026-08-31 · 报告生成于分析当日库内 CURRENT_DATE</p>
 </main>
 <script>
