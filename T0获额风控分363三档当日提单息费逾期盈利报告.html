@@ -392,7 +392,13 @@ const labelGood = {
       meta.data.forEach((pt, j) => {
         const v = ds.data[j];
         if (v == null) return;
-        ctx.fillText(Number(v).toFixed(2) + '%', pt.x, pt.y - 7);
+        if (j === 0) {
+          ctx.textAlign = 'left';
+          ctx.fillText(Number(v).toFixed(2) + '%', pt.x + 8, pt.y - 7);
+        } else {
+          ctx.textAlign = 'center';
+          ctx.fillText(Number(v).toFixed(2) + '%', pt.x, pt.y - 7);
+        }
       });
       ctx.restore();
     });
