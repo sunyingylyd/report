@@ -377,10 +377,32 @@ function stack(id, ds) {
     }
   });
 }
+const labelGood = {
+  id: 'labelGood',
+  afterDatasetsDraw(chart) {
+    const {ctx} = chart;
+    chart.data.datasets.forEach((ds, i) => {
+      if (!String(ds.label).startsWith('最好')) return;
+      const meta = chart.getDatasetMeta(i);
+      ctx.save();
+      ctx.font = '12px sans-serif';
+      ctx.fillStyle = '#64dcae';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      meta.data.forEach((pt, j) => {
+        const v = ds.data[j];
+        if (v == null) return;
+        ctx.fillText(Number(v).toFixed(2) + '%', pt.x, pt.y - 7);
+      });
+      ctx.restore();
+    });
+  }
+};
 function lineZoom(id, datasets) {
   const vals = datasets.flatMap(d => d.data).filter(x => x != null);
   const mn = Math.min(...vals), mx = Math.max(...vals);
-  const pad = Math.max(1.2, (mx - mn) * 0.22);
+  const padLo = Math.max(1.2, (mx - mn) * 0.22);
+  const padHi = Math.max(2.4, (mx - mn) * 0.38);
   new Chart(document.getElementById(id), {
     type:'line',
     data:{labels:D.ym, datasets},
@@ -388,10 +410,11 @@ function lineZoom(id, datasets) {
       plugins:{legend:{labels:{color:'#eff8ff'}}},
       scales:{
         x:{ticks:{color:'#aac5da'}, grid:{display:false}},
-        y:{type:'linear', min: +(mn - pad).toFixed(1), max: +(mx + pad).toFixed(1), beginAtZero:false,
+        y:{type:'linear', min: +(mn - padLo).toFixed(1), max: +(mx + padHi).toFixed(1), beginAtZero:false,
           ticks:{color:'#aac5da'}, grid:{color:'rgba(42,92,126,.25)'}}
       }
-    }
+    },
+    plugins:[labelGood]
   });
 }
 const lw = 2.4;
