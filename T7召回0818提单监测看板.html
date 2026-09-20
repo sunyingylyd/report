@@ -9,10 +9,13 @@
 :root{--bg:#071b2f;--card:#0c2944;--line:#2a5c7e;--text:#eff8ff;--muted:#aac5da;--cy:#43c7e7;--gr:#64dcae;--am:#ffc26b;--pk:#f68ab0}
 *{box-sizing:border-box}body{margin:0;background:#06192b;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}
 .wrap{max-width:1400px;margin:auto;padding:24px 28px 64px}
-.top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;border-bottom:1px solid var(--line);padding-bottom:16px}
+.top{text-align:center;border-bottom:1px solid var(--line);padding-bottom:18px}
 .kicker{color:var(--cy);font-size:12px;letter-spacing:2px;font-weight:700}
-h1{font-size:24px;margin:6px 0 0}
-.meta{color:var(--muted);font-size:13px;line-height:1.7;text-align:right}
+h1{font-size:24px;margin:8px 0 0}
+.spec h2{font-size:18px;margin:0 0 10px}
+.spec p,.spec li{color:var(--muted);font-size:13.5px;line-height:1.75;margin:0 0 8px}
+.spec ul{margin:0 0 12px;padding-left:18px}
+.spec b{color:#eff8ff}
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}
 .card{background:rgba(10,41,68,.95);border:1px solid var(--line);border-radius:14px;padding:16px}
 .label{color:var(--muted);font-size:12px}
@@ -27,22 +30,14 @@ table{width:100%;border-collapse:collapse;font-size:13px}
 th,td{padding:8px 10px;border-bottom:1px solid rgba(42,92,126,.45);text-align:right}
 th{color:var(--muted);text-align:right}th:first-child,td:first-child{text-align:left}
 .note{color:var(--muted);font-size:12.5px;line-height:1.75;margin-top:18px}
-@media(max-width:900px){.kpis,.grid,.top{grid-template-columns:1fr;display:grid}.meta{text-align:left}}
+@media(max-width:900px){.kpis,.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <main class="wrap">
 <div class="top">
-  <div>
-    <div class="kicker">MONITOR · T7 RECALL</div>
-    <h1>流失 7 天以上召回 · 提单监测看板</h1>
-  </div>
-  <div class="meta">
-    名单：t7recalllist_0818_0819<br>
-    触达日 recall_date = 2026-08-18<br>
-    提单：apply_date ≥ 2026-08-18，用户去重<br>
-    数据截止：2026-09-19（当日可能未跑全）
-  </div>
+  <div class="kicker">MONITOR · T7+ RECALL</div>
+  <h1>流失 7 天以上召回 · 提单监测看板</h1>
 </div>
 
 <section class="kpis">
@@ -85,10 +80,28 @@ th{color:var(--muted);text-align:right}th:first-child,td:first-child{text-align:
     <tbody id="tb"></tbody>
   </table>
 </div>
-<p class="note">
-样板口径可复用：名单表换批次、触达日改参数即可。不卡到期、不卡放款。后续可把 SQL 挂到定时任务，把 JSON 写进页内 DATA 即可刷新看板。<br>
-刷新查询见页底注释。
-</p>
+<section class="card spec" style="margin-top:18px">
+  <h2>口径说明</h2>
+  <p><b>推荐口径（本看板采用）</b>：分母为触达名单去重用户；分子为触达日及之后任意提单的去重用户。不卡到期、不卡放款。一人多笔提单只计 1 人，每日新增按召回后<strong>第一笔</strong>提单所在日。</p>
+  <ul>
+    <li>名单：<code>wangchuanliang.t7recalllist_0818_0819</code>，仅 <code>recall_date = 2026-08-18</code></li>
+    <li>提单：<code>order_loan_f_v2_copy.apply_date ≥ 2026-08-18</code></li>
+    <li>提单率 = 提单用户数 / 流失用户数</li>
+    <li>数据截止：2026-09-19（当日订单可能未跑全，看日新增时以 9/18 为准）</li>
+  </ul>
+  <p><b>本批统计归纳</b></p>
+  <table>
+    <thead><tr><th>指标</th><th>数值</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>流失用户（分母）</td><td>11,585</td><td>8/18 触达，churn_user_id 去重</td></tr>
+      <tr><td>提单用户（分子）</td><td>2,409</td><td>8/18 及之后有过提单</td></tr>
+      <tr><td>累计提单率</td><td>20.79%</td><td>2,409 / 11,585</td></tr>
+      <tr><td>触达当日首次提单</td><td>131</td><td>2026-08-18，累计率 1.13%</td></tr>
+      <tr><td>完整最近一日新增</td><td>43</td><td>2026-09-18；9/19 仅 3 人，不完整</td></tr>
+    </tbody>
+  </table>
+  <p style="margin-top:12px">换批次时改名单表和触达日，把查询结果写入页内 <code>DATA</code> 即可刷新。不建议把「是否到期」加进提单率，否则未到期单会被漏掉。</p>
+</section>
 </main>
 <script>
 const DATA = {"daily": [{"d": "2026-08-18", "n": 131, "cum": 131, "rate": 1.13}, {"d": "2026-08-19", "n": 125, "cum": 256, "rate": 2.21}, {"d": "2026-08-20", "n": 138, "cum": 394, "rate": 3.4}, {"d": "2026-08-21", "n": 102, "cum": 496, "rate": 4.28}, {"d": "2026-08-22", "n": 129, "cum": 625, "rate": 5.39}, {"d": "2026-08-23", "n": 125, "cum": 750, "rate": 6.47}, {"d": "2026-08-24", "n": 142, "cum": 892, "rate": 7.7}, {"d": "2026-08-25", "n": 102, "cum": 994, "rate": 8.58}, {"d": "2026-08-26", "n": 84, "cum": 1078, "rate": 9.31}, {"d": "2026-08-27", "n": 85, "cum": 1163, "rate": 10.04}, {"d": "2026-08-28", "n": 81, "cum": 1244, "rate": 10.74}, {"d": "2026-08-29", "n": 94, "cum": 1338, "rate": 11.55}, {"d": "2026-08-30", "n": 61, "cum": 1399, "rate": 12.08}, {"d": "2026-08-31", "n": 70, "cum": 1469, "rate": 12.68}, {"d": "2026-09-01", "n": 69, "cum": 1538, "rate": 13.28}, {"d": "2026-09-02", "n": 45, "cum": 1583, "rate": 13.66}, {"d": "2026-09-03", "n": 58, "cum": 1641, "rate": 14.16}, {"d": "2026-09-04", "n": 53, "cum": 1694, "rate": 14.62}, {"d": "2026-09-05", "n": 61, "cum": 1755, "rate": 15.15}, {"d": "2026-09-06", "n": 61, "cum": 1816, "rate": 15.68}, {"d": "2026-09-07", "n": 62, "cum": 1878, "rate": 16.21}, {"d": "2026-09-08", "n": 56, "cum": 1934, "rate": 16.69}, {"d": "2026-09-09", "n": 45, "cum": 1979, "rate": 17.08}, {"d": "2026-09-10", "n": 42, "cum": 2021, "rate": 17.44}, {"d": "2026-09-11", "n": 64, "cum": 2085, "rate": 18.0}, {"d": "2026-09-12", "n": 68, "cum": 2153, "rate": 18.58}, {"d": "2026-09-13", "n": 46, "cum": 2199, "rate": 18.98}, {"d": "2026-09-14", "n": 33, "cum": 2232, "rate": 19.27}, {"d": "2026-09-15", "n": 42, "cum": 2274, "rate": 19.63}, {"d": "2026-09-16", "n": 44, "cum": 2318, "rate": 20.01}, {"d": "2026-09-17", "n": 45, "cum": 2363, "rate": 20.4}, {"d": "2026-09-18", "n": 43, "cum": 2406, "rate": 20.77}, {"d": "2026-09-19", "n": 3, "cum": 2409, "rate": 20.79}], "strat": [{"strat": "20d+10r", "n_user": 5596, "n_apply": 1257, "pct": 22.46}, {"strat": "30d", "n_user": 2137, "n_apply": 526, "pct": 24.61}, {"strat": "30d+10r", "n_user": 1718, "n_apply": 170, "pct": 9.9}, {"strat": "20d", "n_user": 1355, "n_apply": 338, "pct": 24.94}, {"strat": "10d+10r", "n_user": 339, "n_apply": 55, "pct": 16.22}, {"strat": "40d", "n_user": 254, "n_apply": 30, "pct": 11.81}, {"strat": "10d", "n_user": 186, "n_apply": 33, "pct": 17.74}], "churn": [{"bin": "7-10d", "n_user": 489, "n_apply": 248, "pct": 50.72}, {"bin": "11-20d", "n_user": 1646, "n_apply": 616, "pct": 37.42}, {"bin": "21-30d", "n_user": 1162, "n_apply": 319, "pct": 27.45}, {"bin": "31-40d", "n_user": 1065, "n_apply": 296, "pct": 27.79}, {"bin": "40d+", "n_user": 7223, "n_apply": 930, "pct": 12.88}]};
