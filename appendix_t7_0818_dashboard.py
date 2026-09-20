@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-T7+ 召回提单监测看板 · 后端
+T7+ 召回前端看板 · 后端
 库：kaby_dw / GaussDB
 名单：wangchuanliang.t7recalllist_0818_0819
 触达日：recall_date = 2026-08-18
