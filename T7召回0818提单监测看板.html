@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>T7 召回提单监测看板 · 2026-08-18</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#071b2f;--card:#0c2944;--line:#2a5c7e;--text:#eff8ff;--muted:#aac5da;--cy:#43c7e7;--gr:#64dcae;--am:#ffc26b;--pk:#f68ab0}
+*{box-sizing:border-box}body{margin:0;background:#06192b;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}
+.wrap{max-width:1400px;margin:auto;padding:24px 28px 64px}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;border-bottom:1px solid var(--line);padding-bottom:16px}
+.kicker{color:var(--cy);font-size:12px;letter-spacing:2px;font-weight:700}
+h1{font-size:24px;margin:6px 0 0}
+.meta{color:var(--muted);font-size:13px;line-height:1.7;text-align:right}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}
+.card{background:rgba(10,41,68,.95);border:1px solid var(--line);border-radius:14px;padding:16px}
+.label{color:var(--muted);font-size:12px}
+.num{font-size:28px;font-weight:800;margin:6px 0 2px;color:var(--cy);line-height:1.15}
+.num.g{color:var(--gr)}.num.a{color:var(--am)}.num.p{color:var(--pk)}
+.sub{color:var(--muted);font-size:12px}
+.grid{display:grid;grid-template-columns:1.4fr 1fr;gap:14px}
+.chart h3{margin:0 0 4px;font-size:15px}
+.chart p{margin:0 0 10px;font-size:12px;color:var(--muted)}
+.box{height:300px;position:relative}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:8px 10px;border-bottom:1px solid rgba(42,92,126,.45);text-align:right}
+th{color:var(--muted);text-align:right}th:first-child,td:first-child{text-align:left}
+.note{color:var(--muted);font-size:12.5px;line-height:1.75;margin-top:18px}
+@media(max-width:900px){.kpis,.grid,.top{grid-template-columns:1fr;display:grid}.meta{text-align:left}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<div class="top">
+  <div>
+    <div class="kicker">MONITOR · T7 RECALL</div>
+    <h1>流失 7 天以上召回 · 提单监测看板</h1>
+  </div>
+  <div class="meta">
+    名单：t7recalllist_0818_0819<br>
+    触达日 recall_date = 2026-08-18<br>
+    提单：apply_date ≥ 2026-08-18，用户去重<br>
+    数据截止：2026-09-19（当日可能未跑全）
+  </div>
+</div>
+
+<section class="kpis">
+  <article class="card"><div class="label">流失用户（分母）</div><div class="num">11,585</div><div class="sub">8/18 触达，一人一行</div></article>
+  <article class="card"><div class="label">提单用户数</div><div class="num g">2,409</div><div class="sub">触达日及之后任意提单</div></article>
+  <article class="card"><div class="label">累计提单率</div><div class="num a">20.79%</div><div class="sub">2,409 / 11,585</div></article>
+  <article class="card"><div class="label">昨日新增提单</div><div class="num p">43</div><div class="sub">2026-09-18 首次提单（9/19 仅 3 人，不完整）</div></article>
+</section>
+
+<div class="grid">
+  <div class="card chart">
+    <h3>累计提单用户与提单率</h3>
+    <p>左轴累计人数，右轴累计提单率。分母固定为 11,585</p>
+    <div class="box"><canvas id="c1"></canvas></div>
+  </div>
+  <div class="card chart">
+    <h3>每日新增首次提单</h3>
+    <p>每人只记召回后第一笔提单所在日</p>
+    <div class="box"><canvas id="c2"></canvas></div>
+  </div>
+</div>
+
+<div class="grid" style="margin-top:14px">
+  <div class="card chart">
+    <h3>分层 strat 提单率</h3>
+    <p>人数柱 + 提单率折线</p>
+    <div class="box"><canvas id="c3"></canvas></div>
+  </div>
+  <div class="card chart">
+    <h3>流失天数提单率</h3>
+    <p>流失越久，召回后提单率越低</p>
+    <div class="box"><canvas id="c4"></canvas></div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:14px">
+  <h3 style="margin:0 0 10px;font-size:15px">分层明细</h3>
+  <table>
+    <thead><tr><th>strat</th><th>用户数</th><th>提单用户</th><th>提单率</th></tr></thead>
+    <tbody id="tb"></tbody>
+  </table>
+</div>
+<p class="note">
+样板口径可复用：名单表换批次、触达日改参数即可。不卡到期、不卡放款。后续可把 SQL 挂到定时任务，把 JSON 写进页内 DATA 即可刷新看板。<br>
+刷新查询见页底注释。
+</p>
+</main>
+<script>
+const DATA = {"daily": [{"d": "2026-08-18", "n": 131, "cum": 131, "rate": 1.13}, {"d": "2026-08-19", "n": 125, "cum": 256, "rate": 2.21}, {"d": "2026-08-20", "n": 138, "cum": 394, "rate": 3.4}, {"d": "2026-08-21", "n": 102, "cum": 496, "rate": 4.28}, {"d": "2026-08-22", "n": 129, "cum": 625, "rate": 5.39}, {"d": "2026-08-23", "n": 125, "cum": 750, "rate": 6.47}, {"d": "2026-08-24", "n": 142, "cum": 892, "rate": 7.7}, {"d": "2026-08-25", "n": 102, "cum": 994, "rate": 8.58}, {"d": "2026-08-26", "n": 84, "cum": 1078, "rate": 9.31}, {"d": "2026-08-27", "n": 85, "cum": 1163, "rate": 10.04}, {"d": "2026-08-28", "n": 81, "cum": 1244, "rate": 10.74}, {"d": "2026-08-29", "n": 94, "cum": 1338, "rate": 11.55}, {"d": "2026-08-30", "n": 61, "cum": 1399, "rate": 12.08}, {"d": "2026-08-31", "n": 70, "cum": 1469, "rate": 12.68}, {"d": "2026-09-01", "n": 69, "cum": 1538, "rate": 13.28}, {"d": "2026-09-02", "n": 45, "cum": 1583, "rate": 13.66}, {"d": "2026-09-03", "n": 58, "cum": 1641, "rate": 14.16}, {"d": "2026-09-04", "n": 53, "cum": 1694, "rate": 14.62}, {"d": "2026-09-05", "n": 61, "cum": 1755, "rate": 15.15}, {"d": "2026-09-06", "n": 61, "cum": 1816, "rate": 15.68}, {"d": "2026-09-07", "n": 62, "cum": 1878, "rate": 16.21}, {"d": "2026-09-08", "n": 56, "cum": 1934, "rate": 16.69}, {"d": "2026-09-09", "n": 45, "cum": 1979, "rate": 17.08}, {"d": "2026-09-10", "n": 42, "cum": 2021, "rate": 17.44}, {"d": "2026-09-11", "n": 64, "cum": 2085, "rate": 18.0}, {"d": "2026-09-12", "n": 68, "cum": 2153, "rate": 18.58}, {"d": "2026-09-13", "n": 46, "cum": 2199, "rate": 18.98}, {"d": "2026-09-14", "n": 33, "cum": 2232, "rate": 19.27}, {"d": "2026-09-15", "n": 42, "cum": 2274, "rate": 19.63}, {"d": "2026-09-16", "n": 44, "cum": 2318, "rate": 20.01}, {"d": "2026-09-17", "n": 45, "cum": 2363, "rate": 20.4}, {"d": "2026-09-18", "n": 43, "cum": 2406, "rate": 20.77}, {"d": "2026-09-19", "n": 3, "cum": 2409, "rate": 20.79}], "strat": [{"strat": "20d+10r", "n_user": 5596, "n_apply": 1257, "pct": 22.46}, {"strat": "30d", "n_user": 2137, "n_apply": 526, "pct": 24.61}, {"strat": "30d+10r", "n_user": 1718, "n_apply": 170, "pct": 9.9}, {"strat": "20d", "n_user": 1355, "n_apply": 338, "pct": 24.94}, {"strat": "10d+10r", "n_user": 339, "n_apply": 55, "pct": 16.22}, {"strat": "40d", "n_user": 254, "n_apply": 30, "pct": 11.81}, {"strat": "10d", "n_user": 186, "n_apply": 33, "pct": 17.74}], "churn": [{"bin": "7-10d", "n_user": 489, "n_apply": 248, "pct": 50.72}, {"bin": "11-20d", "n_user": 1646, "n_apply": 616, "pct": 37.42}, {"bin": "21-30d", "n_user": 1162, "n_apply": 319, "pct": 27.45}, {"bin": "31-40d", "n_user": 1065, "n_apply": 296, "pct": 27.79}, {"bin": "40d+", "n_user": 7223, "n_apply": 930, "pct": 12.88}]};
+
+const T='#43c7e7', G='#64dcae', A='#ffc26b', P='#f68ab0', W='#8fb4cc';
+const g={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#d5e8f5'}}},scales:{x:{ticks:{color:'#9db8cc',maxRotation:45,minRotation:0},grid:{color:'rgba(42,92,126,.25)'}},y:{ticks:{color:'#9db8cc'},grid:{color:'rgba(42,92,126,.25)'}}}};
+Chart.defaults.font.family='-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif';
+
+new Chart(c1,{type:'line',data:{
+  labels:DATA.daily.map(x=>x.d.slice(5)),
+  datasets:[
+    {label:'累计提单用户',data:DATA.daily.map(x=>x.cum),borderColor:T,backgroundColor:'rgba(67,199,231,.15)',fill:true,yAxisID:'y',tension:.25,pointRadius:2},
+    {label:'累计提单率%',data:DATA.daily.map(x=>x.rate),borderColor:A,yAxisID:'y1',tension:.25,pointRadius:2}
+  ]
+},options:{...g,scales:{x:g.scales.x,y:{...g.scales.y,position:'left',title:{display:true,text:'人',color:'#9db8cc'}},y1:{position:'right',ticks:{color:'#9db8cc'},grid:{drawOnChartArea:false},title:{display:true,text:'%',color:'#9db8cc'}}}}});
+
+new Chart(c2,{type:'bar',data:{
+  labels:DATA.daily.map(x=>x.d.slice(5)),
+  datasets:[{label:'当日新增首次提单',data:DATA.daily.map(x=>x.n),backgroundColor:G}]
+},options:g});
+
+new Chart(c3,{type:'bar',data:{
+  labels:DATA.strat.map(x=>x.strat),
+  datasets:[
+    {label:'用户数',data:DATA.strat.map(x=>x.n_user),backgroundColor:'rgba(67,199,231,.35)',yAxisID:'y'},
+    {label:'提单率%',data:DATA.strat.map(x=>x.pct),type:'line',borderColor:P,yAxisID:'y1',tension:.2}
+  ]
+},options:{...g,scales:{x:g.scales.x,y:{...g.scales.y,position:'left'},y1:{position:'right',ticks:{color:'#9db8cc'},grid:{drawOnChartArea:false}}}}});
+
+new Chart(c4,{type:'bar',data:{
+  labels:DATA.churn.map(x=>x.bin),
+  datasets:[{label:'提单率%',data:DATA.churn.map(x=>x.pct),backgroundColor:A}]
+},options:g});
+
+document.getElementById('tb').innerHTML = DATA.strat.map(x=>
+  `<tr><td>${x.strat}</td><td>${x.n_user.toLocaleString()}</td><td>${x.n_apply.toLocaleString()}</td><td>${x.pct.toFixed(2)}%</td></tr>`
+).join('');
+</script>
+<!--
+刷新 SQL（GaussDB）：
+WITH u AS (
+  SELECT DISTINCT churn_user_id::bigint AS user_id, strat, churn_days
+  FROM wangchuanliang.t7recalllist_0818_0819
+  WHERE churn_user_id IS NOT NULL AND recall_date = DATE '2026-08-18'
+)
+SELECT COUNT(*) n_user, COUNT(a.user_id) n_apply,
+       ROUND(100.0*COUNT(a.user_id)/COUNT(*),2) apply_pct
+FROM u
+LEFT JOIN (
+  SELECT DISTINCT o.user_id FROM u
+  JOIN wangchuanliang.order_loan_f_v2_copy o
+    ON o.user_id=u.user_id AND o.apply_date>=DATE '2026-08-18'
+) a ON a.user_id=u.user_id;
+-->
+</body>
+</html>
