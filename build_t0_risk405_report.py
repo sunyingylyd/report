@@ -355,6 +355,10 @@ h2{{font-size:24px;margin:44px 0 10px}}h3{{font-size:17px;margin:22px 0 8px}}
 .table{{overflow-x:auto;margin:12px 0}}table{{width:100%;border-collapse:collapse;font-size:13px}}
 th,td{{padding:8px 10px;border-bottom:1px solid rgba(42,92,126,.45);text-align:right;white-space:nowrap}}
 th{{color:var(--muted);background:rgba(12,48,78,.65);font-weight:600}}th:first-child,td:first-child{{text-align:left}}
+details{{background:#082238;border:1px solid var(--line);border-radius:10px;margin:12px 0}}
+summary{{cursor:pointer;padding:14px 16px;font-weight:700;color:#d9edf8}}
+details[open] summary{{border-bottom:1px solid var(--line)}}
+details pre.sql{{margin:0;border:0;border-radius:0 0 10px 10px}}
 pre.sql{{background:#081726;border:1px solid var(--line);border-radius:14px;padding:18px;overflow:auto;max-height:820px;font-size:12px;line-height:1.6;color:#bfe0f2;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;white-space:pre;tab-size:2}}
 .foot{{color:#7fa6c2;font-size:12.5px;margin-top:50px;border-top:1px solid var(--line);padding-top:16px;line-height:1.9}}
 @media(max-width:900px){{.g2,.g4{{grid-template-columns:1fr}}}}
@@ -436,9 +440,14 @@ T0 获额结构：最好档 {pct(m0['pct_t0_good'])} → {pct(m1['pct_t0_good'])
 <li>当天提单不卡 is_due / is_remit。息费不卡放款。盈利、逾期要求 is_remit=1 且已到期。</li>
 </ul>
 
+<section id="sql">
 <h2>附录：完整 PGSQL</h2>
-<p class="desc">在 kaby_dw 执行；<code>SET search_path TO wangchuanliang, public;</code>。四个结果集依次为阈值、月度总体、月度×三档、剔除前覆盖。同目录文件 <code>appendix_t0_risk405_full.sql</code>。</p>
+<p class="desc">在 kaby_dw 执行；<code>SET search_path TO wangchuanliang, public;</code>。四个结果集依次为阈值、月度总体、月度×三档、剔除前覆盖。同目录文件 <code>appendix_t0_risk405_full.sql</code>。默认收起，点击展开。</p>
+<details>
+<summary>完整 PGSQL（点击展开）</summary>
 <pre class="sql">{sql_esc}</pre>
+</details>
+</section>
 <p class="foot">数据：kaby_dw · wangchuanliang · 2026-01-01～2026-08-31 · 无 405 分获额单已剔除（见结果4） · 报告生成于分析当日库内 CURRENT_DATE</p>
 </main>
 <script>
