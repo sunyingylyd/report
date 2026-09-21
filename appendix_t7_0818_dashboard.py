@@ -438,6 +438,33 @@ function base(y2) {
 function line(id, labels, datasets, y2) {
   new Chart(document.getElementById(id), {type:'line', data:{labels, datasets}, options:base(y2)});
 }
+function drawRateLabels(chart) {
+  const {ctx} = chart;
+  chart.data.datasets.forEach((ds,i)=>{
+    if(!String(ds.label).includes('提单率')) return;
+    const pts = chart.getDatasetMeta(i).data;
+    ctx.save();
+    ctx.font='11px sans-serif';
+    ctx.fillStyle='#f68ab0';
+    ctx.strokeStyle='#071b2f';
+    ctx.lineWidth=4;
+    ctx.textBaseline='bottom';
+    pts.forEach((pt,j)=>{
+      const v=ds.data[j];
+      if(v==null) return;
+      let dx=0, dy=-16, align='center';
+      if(j===0){ align='left'; dx=10; }
+      else if(j===pts.length-1){ align='right'; dx=-10; }
+      const prev=pts[j-1], next=pts[j+1];
+      if(prev && next && pt.y>=prev.y && pt.y>=next.y) dy=-20;
+      ctx.textAlign=align;
+      const t=Number(v).toFixed(2)+'%';
+      ctx.strokeText(t, pt.x+dx, pt.y+dy);
+      ctx.fillText(t, pt.x+dx, pt.y+dy);
+    });
+    ctx.restore();
+  });
+}
 const fd = D.first_daily, ad = D.apply_daily, rd = D.remit_daily, dd = D.due_daily, k=D.kpi;
 line('c1', fd.map(x=>x.d.slice(5)), [
   {label:'累计提单人数', data:fd.map(x=>x.cum), borderColor:col.cy, backgroundColor:'rgba(67,199,231,.12)', fill:true, tension:.25, yAxisID:'y', pointRadius:2},
@@ -469,8 +496,7 @@ new Chart(document.getElementById('c7'), {type:'doughnut', data:{labels:['已提
     meta.data.forEach((arc,i)=>{
       const v = ds.data[i]; const pos = arc.tooltipPosition();
       ctx.save(); ctx.fillStyle='#eff8ff'; ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.font='12px sans-serif'; ctx.fillText(chart.data.labels[i], pos.x, pos.y-9);
-      ctx.font='11px sans-serif'; ctx.fillText(Number(v).toLocaleString()+' · '+(100*v/total).toFixed(2)+'%', pos.x, pos.y+9);
+      ctx.font='13px sans-serif'; ctx.fillText((100*v/total).toFixed(2)+'%', pos.x, pos.y);
       ctx.restore();
     });
   }}]});
