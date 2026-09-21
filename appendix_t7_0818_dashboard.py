@@ -402,7 +402,7 @@ h1{{font-size:24px;margin:8px 0 6px}}
   <div class="card chart"><h3>每日新增首次提单</h3><p>每人只记召回后第一笔提单所在日</p><div class="box"><canvas id="c2"></canvas></div></div>
 </div>
 <div class="grid" style="margin-top:14px">
-  <div class="card chart"><h3>每日提单用户 / 提单订单</h3><p>当日任意提单，可含同一人多笔</p><div class="box"><canvas id="c3"></canvas></div></div>
+  <div class="card chart"><h3>每日提单用户</h3><p>当日有过提单的去重用户</p><div class="box"><canvas id="c3"></canvas></div></div>
   <div class="card chart"><h3>每日放款单量与累计</h3><p>已放款订单；本周新增见 KPI</p><div class="box"><canvas id="c4"></canvas></div></div>
 </div>
 <div class="grid" style="margin-top:14px">
@@ -447,8 +447,7 @@ new Chart(document.getElementById('c2'), {type:'bar', data:{labels:fd.map(x=>x.d
   {label:'当日首次提单', data:fd.map(x=>x.n), backgroundColor:col.gr}
 ]}, options:base(false)});
 new Chart(document.getElementById('c3'), {type:'bar', data:{labels:ad.map(x=>x.d.slice(5)), datasets:[
-  {label:'当日提单用户', data:ad.map(x=>x.n_user), backgroundColor:'rgba(67,199,231,.7)'},
-  {label:'当日提单订单', data:ad.map(x=>x.n_order), backgroundColor:'rgba(246,138,176,.55)'}
+  {label:'当日提单用户', data:ad.map(x=>x.n_user), backgroundColor:'rgba(67,199,231,.7)'}
 ]}, options:base(false)});
 line('c4', rd.map(x=>x.d.slice(5)), [
   {label:'当日放款单', data:rd.map(x=>x.n), borderColor:col.gr, tension:.25, yAxisID:'y', pointRadius:2},
