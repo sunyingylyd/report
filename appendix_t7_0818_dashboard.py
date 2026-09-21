@@ -394,8 +394,8 @@ h1{{font-size:24px;margin:8px 0 6px}}
   <article class="card"><div class="label">本周新增提单人数</div><div class="num p">{fmt(k['n_first_week'])}</div><div class="sub">召回后首次提单落在本周</div></article>
   <article class="card"><div class="label">放款单量</div><div class="num g">{fmt(k['n_remit'])}</div><div class="sub">8/18至今已放款订单数</div></article>
   <article class="card"><div class="label">本周新增放款单量</div><div class="num">{fmt(k['n_remit_week'])}</div><div class="sub">本周新放款订单数</div></article>
-  <article class="card"><div class="label">到期订单盈利率</div><div class="num a">{pct(k['profit_pct'])}</div><div class="sub">(repaid_amt−remit_amt)/remit_amt · is_due=1 · {fmt(k['n_due'])} 单</div></article>
-  <article class="card"><div class="label">到期订单逾期率</div><div class="num p">{pct(k['overdue_pct'])}</div><div class="sub">状态=8 / 到期单 · is_due=1 · {fmt(k['n_due_od'])} / {fmt(k['n_due'])}</div></article>
+  <article class="card"><div class="label">订单盈利率</div><div class="num a">{pct(k['profit_pct'])}</div><div class="sub">到期订单</div></article>
+  <article class="card"><div class="label">订单逾期率</div><div class="num p">{pct(k['overdue_pct'])}</div><div class="sub">到期订单</div></article>
 </section>
 <div class="grid">
   <div class="card chart"><h3>累计提单人数与提单率</h3><p>按召回后首次提单日累计，分母={fmt(k['n_user'])}</p><div class="box"><canvas id="c1"></canvas></div></div>
