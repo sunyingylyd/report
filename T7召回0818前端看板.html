@@ -8,337 +8,119 @@
 <style>
 :root{--bg:#071b2f;--card:#0c2944;--line:#2a5c7e;--text:#eff8ff;--muted:#aac5da;--cy:#43c7e7;--gr:#64dcae;--am:#ffc26b;--pk:#f68ab0}
 *{box-sizing:border-box}body{margin:0;background:#06192b;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}
-.wrap{max-width:1400px;margin:auto;padding:24px 28px 64px}
-.top{text-align:center;border-bottom:1px solid var(--line);padding-bottom:18px}
+.wrap{max-width:1480px;margin:auto;padding:24px 28px 64px}
+.top{text-align:center;border-bottom:1px solid var(--line);padding-bottom:16px}
 .kicker{color:var(--cy);font-size:12px;letter-spacing:2px;font-weight:700}
-h1{font-size:24px;margin:8px 0 0}
-.spec h2,.app h2{font-size:18px;margin:0 0 10px}
-.spec p,.spec li,.app p{color:var(--muted);font-size:13.5px;line-height:1.75;margin:0 0 8px}
-.spec ul{margin:0 0 12px;padding-left:18px}
-.spec b,.app b{color:#eff8ff}
+h1{font-size:24px;margin:8px 0 6px}
+.meta{color:var(--muted);font-size:13px;line-height:1.7}
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}
 .card{background:rgba(10,41,68,.95);border:1px solid var(--line);border-radius:14px;padding:16px}
 .label{color:var(--muted);font-size:12px}
-.num{font-size:28px;font-weight:800;margin:6px 0 2px;color:var(--cy);line-height:1.15}
+.num{font-size:26px;font-weight:800;margin:6px 0 2px;color:var(--cy);line-height:1.15}
 .num.g{color:var(--gr)}.num.a{color:var(--am)}.num.p{color:var(--pk)}
 .sub{color:var(--muted);font-size:12px}
-.grid{display:grid;grid-template-columns:1.4fr 1fr;gap:14px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .chart h3{margin:0 0 4px;font-size:15px}
 .chart p{margin:0 0 10px;font-size:12px;color:var(--muted)}
 .box{height:300px;position:relative}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{padding:8px 10px;border-bottom:1px solid rgba(42,92,126,.45);text-align:right}
-th{color:var(--muted)}th:first-child,td:first-child{text-align:left}
-details{margin:12px 0}summary{cursor:pointer;color:var(--cy);font-weight:600;padding:6px 0}
-pre.sql{background:#081726;border:1px solid var(--line);border-radius:12px;padding:16px;overflow:auto;max-height:640px;font-size:11.5px;line-height:1.5;color:#bfe0f2;white-space:pre;tab-size:2;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace}
+.foot{color:#7fa6c2;font-size:12px;margin-top:28px;border-top:1px solid var(--line);padding-top:14px;line-height:1.8}
 @media(max-width:900px){.kpis,.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <main class="wrap">
 <div class="top">
-  <div class="kicker">FRONTEND DASHBOARD · T7+ RECALL</div>
+  <div class="kicker">FRONTEND DASHBOARD · T7+ RECALL · 2026-08-18</div>
   <h1>流失 7 天以上召回 · 前端看板</h1>
+  <p class="meta">名单 11,585 人 · 统计至 2026-09-20 · 本周 2026-09-14 起（周一）<br>
+  提单：apply_date≥8/18，用户去重。本周提单=本周任意提单用户；本周新增提单=召回后首次提单落在本周。<br>
+  放款：is_remit=1 且 remit_amt&gt;0。到期盈利/逾期：is_due=1 且已放款；逾期=loan_status_code=8。</p>
 </div>
 <section class="kpis">
-  <article class="card"><div class="label">流失用户</div><div class="num">11,585</div><div class="sub">8/18 触达用户数</div></article>
-  <article class="card"><div class="label">提单用户数</div><div class="num g">2,409</div><div class="sub">触达日及之后任意提单</div></article>
-  <article class="card"><div class="label">累计提单率</div><div class="num a">20.79%</div><div class="sub">2,409 / 11,585</div></article>
-  <article class="card"><div class="label">昨日新增提单</div><div class="num p">43</div><div class="sub">2026-09-18 首次提单（9/19 仅 3 人，不完整）</div></article>
+  <article class="card"><div class="label">提单率</div><div class="num a">21.24%</div><div class="sub">2,461 / 11,585 · 8/18至今去重用户</div></article>
+  <article class="card"><div class="label">总提单人数</div><div class="num g">2,461</div><div class="sub">8/18至今任意提单用户</div></article>
+  <article class="card"><div class="label">本周提单人数</div><div class="num">644</div><div class="sub">本周有过提单的去重用户</div></article>
+  <article class="card"><div class="label">本周新增提单人数</div><div class="num p">262</div><div class="sub">召回后首次提单落在本周</div></article>
+  <article class="card"><div class="label">放款单量</div><div class="num g">3,644</div><div class="sub">8/18至今已放款订单数</div></article>
+  <article class="card"><div class="label">本周新增放款单量</div><div class="num">634</div><div class="sub">本周新放款订单数</div></article>
+  <article class="card"><div class="label">到期订单盈利率</div><div class="num a">7.71%</div><div class="sub">(repaid_amt−remit_amt)/remit_amt · is_due=1 · 1,422 单</div></article>
+  <article class="card"><div class="label">到期订单逾期率</div><div class="num p">33.76%</div><div class="sub">状态=8 / 到期单 · is_due=1 · 480 / 1,422</div></article>
 </section>
 <div class="grid">
-  <div class="card chart">
-    <h3>累计提单用户与提单率</h3>
-    <p>左轴累计人数，右轴累计提单率。分母固定为 11,585</p>
-    <div class="box"><canvas id="c1"></canvas></div>
-  </div>
-  <div class="card chart">
-    <h3>每日新增首次提单</h3>
-    <p>每人只记召回后第一笔提单所在日</p>
-    <div class="box"><canvas id="c2"></canvas></div>
-  </div>
+  <div class="card chart"><h3>累计提单人数与提单率</h3><p>按召回后首次提单日累计，分母=11,585</p><div class="box"><canvas id="c1"></canvas></div></div>
+  <div class="card chart"><h3>每日新增首次提单</h3><p>每人只记召回后第一笔提单所在日</p><div class="box"><canvas id="c2"></canvas></div></div>
 </div>
 <div class="grid" style="margin-top:14px">
-  <div class="card chart">
-    <h3>分层 strat 提单率</h3>
-    <p>人数柱 + 提单率折线</p>
-    <div class="box"><canvas id="c3"></canvas></div>
-  </div>
-  <div class="card chart">
-    <h3>流失天数提单率</h3>
-    <p>人数柱 + 提单率折线 · 7–15 / 16–30 / 31–60 / 61–90 / 91–180 / 180d+</p>
-    <div class="box"><canvas id="c4"></canvas></div>
-  </div>
+  <div class="card chart"><h3>每日提单用户 / 提单订单</h3><p>当日任意提单，可含同一人多笔</p><div class="box"><canvas id="c3"></canvas></div></div>
+  <div class="card chart"><h3>每日放款单量与累计</h3><p>已放款订单；本周新增见 KPI</p><div class="box"><canvas id="c4"></canvas></div></div>
 </div>
-<section class="card spec" style="margin-top:18px">
-  <h2>口径说明</h2>
-  <p><b>推荐口径（本看板采用）</b>：分母为触达名单去重用户；分子为触达日及之后任意提单的去重用户。不卡到期、不卡放款。一人多笔提单只计 1 人，每日新增按召回后<strong>第一笔</strong>提单所在日。</p>
-  <ul>
-    <li>名单：<code>wangchuanliang.t7recalllist_0818_0819</code>，仅 <code>recall_date = 2026-08-18</code></li>
-    <li>提单：<code>order_loan_f_v2_copy.apply_date ≥ 2026-08-18</code></li>
-    <li>提单率 = 提单用户数 / 流失用户数</li>
-    <li>流失天数分箱：7–15、16–30、31–60、61–90、91–180、180d+</li>
-    <li>数据截止：2026-09-19（当日订单可能未跑全，看日新增时以 9/18 为准）</li>
-  </ul>
-  <p><b>本批统计归纳</b></p>
-  <table>
-    <thead><tr><th>指标</th><th>数值</th><th>说明</th></tr></thead>
-    <tbody>
-      <tr><td>流失用户</td><td>11,585</td><td>8/18 触达用户数</td></tr>
-      <tr><td>提单用户</td><td>2,409</td><td>8/18 及之后有过提单</td></tr>
-      <tr><td>累计提单率</td><td>20.79%</td><td>2,409 / 11,585</td></tr>
-      <tr><td>触达当日首次提单</td><td>131</td><td>2026-08-18，累计率 1.13%</td></tr>
-      <tr><td>完整最近一日新增</td><td>43</td><td>2026-09-18；9/19 仅 3 人，不完整</td></tr>
-    </tbody>
-  </table>
-</section>
-<section class="card app" style="margin-top:18px">
-  <h2>附录 · 生成本看板的全部代码</h2>
-  <p>本页是前端看板：Chart.js 读 <code>DATA</code> 画四张图。后端脚本 <code>appendix_t7_0818_dashboard.py</code> 查库写出 JSON 后贴进本页。密码用环境变量 <code>PGPASSWORD</code>，不要写进页面。</p>
-  <details open><summary>后端 Python（查库 + 日新增 / strat / 流失天数）</summary>
-  <pre class="sql">#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-&quot;&quot;&quot;
-T7+ 召回前端看板 · 后端
-库：kaby_dw / GaussDB
-名单：wangchuanliang.t7recalllist_0818_0819
-触达日：recall_date = 2026-08-18
-提单：order_loan_f_v2_copy.apply_date &gt;= 触达日，用户去重，不卡到期/放款
-
-用法：
-  export PGPASSWORD=&#x27;...&#x27;
-  python3 appendix_t7_0818_dashboard.py
-输出 t7_0818_dashboard_data.json ，把内容贴进看板页 const DATA。
-&quot;&quot;&quot;
-import json
-import os
-import psycopg2
-
-HOST = os.environ.get(&quot;PGHOST&quot;, &quot;47.89.225.85&quot;)
-PORT = int(os.environ.get(&quot;PGPORT&quot;, &quot;8000&quot;))
-DB = os.environ.get(&quot;PGDATABASE&quot;, &quot;kaby_dw&quot;)
-USER = os.environ.get(&quot;PGUSER&quot;, &quot;wangchuanliang_readonly&quot;)
-RECALL_DATE = &quot;2026-08-18&quot;
-LIST_TABLE = &quot;wangchuanliang.t7recalllist_0818_0819&quot;
-
-SQL_USERS = f&quot;&quot;&quot;
-SELECT DISTINCT churn_user_id::bigint AS user_id,
-       COALESCE(strat, &#x27;NA&#x27;) AS strat,
-       churn_days
-FROM {LIST_TABLE}
-WHERE churn_user_id IS NOT NULL
-  AND recall_date = DATE &#x27;{RECALL_DATE}&#x27;
-&quot;&quot;&quot;
-
-SQL_DAILY = f&quot;&quot;&quot;
-WITH u AS ({SQL_USERS}),
-fa AS (
-  SELECT o.user_id, MIN(o.apply_date) AS first_apply
-  FROM u
-  INNER JOIN wangchuanliang.order_loan_f_v2_copy o
-    ON o.user_id = u.user_id AND o.apply_date &gt;= DATE &#x27;{RECALL_DATE}&#x27;
-  GROUP BY 1
-)
-SELECT first_apply, COUNT(*) AS n
-FROM fa GROUP BY 1 ORDER BY 1
-&quot;&quot;&quot;
-
-SQL_STRAT = f&quot;&quot;&quot;
-WITH u AS ({SQL_USERS})
-SELECT u.strat, COUNT(*) AS n_user, COUNT(a.user_id) AS n_apply
-FROM u
-LEFT JOIN (
-  SELECT DISTINCT o.user_id
-  FROM u
-  INNER JOIN wangchuanliang.order_loan_f_v2_copy o
-    ON o.user_id = u.user_id AND o.apply_date &gt;= DATE &#x27;{RECALL_DATE}&#x27;
-) a ON a.user_id = u.user_id
-GROUP BY 1 ORDER BY n_user DESC
-&quot;&quot;&quot;
-
-SQL_CHURN = f&quot;&quot;&quot;
-WITH u AS ({SQL_USERS})
-SELECT
-  CASE
-    WHEN churn_days &lt;= 15 THEN &#x27;7-15d&#x27;
-    WHEN churn_days &lt;= 30 THEN &#x27;16-30d&#x27;
-    WHEN churn_days &lt;= 60 THEN &#x27;31-60d&#x27;
-    WHEN churn_days &lt;= 90 THEN &#x27;61-90d&#x27;
-    WHEN churn_days &lt;= 180 THEN &#x27;91-180d&#x27;
-    ELSE &#x27;180d+&#x27;
-  END AS bin,
-  COUNT(*) AS n_user,
-  COUNT(a.user_id) AS n_apply
-FROM u
-LEFT JOIN (
-  SELECT DISTINCT o.user_id
-  FROM u
-  INNER JOIN wangchuanliang.order_loan_f_v2_copy o
-    ON o.user_id = u.user_id AND o.apply_date &gt;= DATE &#x27;{RECALL_DATE}&#x27;
-) a ON a.user_id = u.user_id
-GROUP BY 1
-&quot;&quot;&quot;
-
-CHURN_ORDER = [&quot;7-15d&quot;, &quot;16-30d&quot;, &quot;31-60d&quot;, &quot;61-90d&quot;, &quot;91-180d&quot;, &quot;180d+&quot;]
-
-
-def fetch():
-    pwd = os.environ.get(&quot;PGPASSWORD&quot;)
-    if not pwd:
-        raise SystemExit(&quot;请先设置环境变量 PGPASSWORD&quot;)
-    conn = psycopg2.connect(
-        host=HOST, port=PORT, dbname=DB, user=USER, password=pwd,
-        connect_timeout=30, options=&quot;-c statement_timeout=180000&quot;,
-    )
-    conn.autocommit = True
-    cur = conn.cursor()
-
-    cur.execute(f&quot;SELECT COUNT(*) FROM ({SQL_USERS}) t&quot;)
-    n_user = int(cur.fetchone()[0])
-
-    cur.execute(SQL_DAILY)
-    daily = []
-    cum = 0
-    for d, n in cur.fetchall():
-        n = int(n)
-        cum += n
-        daily.append({
-            &quot;d&quot;: str(d), &quot;n&quot;: n, &quot;cum&quot;: cum,
-            &quot;rate&quot;: round(100.0 * cum / n_user, 2),
-        })
-
-    cur.execute(SQL_STRAT)
-    strat = []
-    for s, nu, na in cur.fetchall():
-        nu, na = int(nu), int(na)
-        strat.append({
-            &quot;strat&quot;: s, &quot;n_user&quot;: nu, &quot;n_apply&quot;: na,
-            &quot;pct&quot;: round(100.0 * na / nu, 2) if nu else 0,
-        })
-
-    cur.execute(SQL_CHURN)
-    raw = {
-        r[0]: {&quot;bin&quot;: r[0], &quot;n_user&quot;: int(r[1]), &quot;n_apply&quot;: int(r[2]),
-               &quot;pct&quot;: round(100.0 * float(r[2]) / float(r[1]), 2) if r[1] else 0}
-        for r in cur.fetchall()
-    }
-    churn = [raw[k] for k in CHURN_ORDER if k in raw]
-    conn.close()
-
-    n_apply = daily[-1][&quot;cum&quot;] if daily else 0
-    return {
-        &quot;kpi&quot;: {
-            &quot;n_user&quot;: n_user,
-            &quot;n_apply&quot;: n_apply,
-            &quot;rate&quot;: round(100.0 * n_apply / n_user, 2) if n_user else 0,
-            &quot;recall_date&quot;: RECALL_DATE,
-            &quot;as_of&quot;: daily[-1][&quot;d&quot;] if daily else None,
-        },
-        &quot;daily&quot;: daily,
-        &quot;strat&quot;: strat,
-        &quot;churn&quot;: churn,
-    }
-
-
-if __name__ == &quot;__main__&quot;:
-    data = fetch()
-    out = os.path.join(os.path.dirname(os.path.abspath(__file__)), &quot;t7_0818_dashboard_data.json&quot;)
-    with open(out, &quot;w&quot;, encoding=&quot;utf-8&quot;) as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-    print(&quot;wrote&quot;, out)
-    print(&quot;kpi&quot;, data[&quot;kpi&quot;])
-</pre>
-  </details>
-  <details><summary>前端 HTML / CSS / Chart.js（看板可视化本体）</summary>
-  <pre class="sql">&lt;!doctype html&gt;
-&lt;html lang=&quot;zh-CN&quot;&gt;
-&lt;head&gt;
-&lt;meta charset=&quot;utf-8&quot;&gt;
-&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1&quot;&gt;
-&lt;title&gt;T7 召回前端看板 · 2026-08-18&lt;/title&gt;
-&lt;script src=&quot;https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js&quot;&gt;&lt;/script&gt;
-&lt;style&gt;
-:root{--bg:#071b2f;--card:#0c2944;--line:#2a5c7e;--text:#eff8ff;--muted:#aac5da;--cy:#43c7e7;--gr:#64dcae;--am:#ffc26b;--pk:#f68ab0}
-*{box-sizing:border-box}body{margin:0;background:#06192b;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,&quot;PingFang SC&quot;,&quot;Microsoft YaHei&quot;,sans-serif}
-.wrap{max-width:1400px;margin:auto;padding:24px 28px 64px}
-.top{text-align:center;border-bottom:1px solid var(--line);padding-bottom:18px}
-.kicker{color:var(--cy);font-size:12px;letter-spacing:2px;font-weight:700}
-h1{font-size:24px;margin:8px 0 0}
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}
-.card{background:rgba(10,41,68,.95);border:1px solid var(--line);border-radius:14px;padding:16px}
-.label{color:var(--muted);font-size:12px}
-.num{font-size:28px;font-weight:800;margin:6px 0 2px;color:var(--cy);line-height:1.15}
-.num.g{color:var(--gr)}.num.a{color:var(--am)}.num.p{color:var(--pk)}
-.sub{color:var(--muted);font-size:12px}
-.grid{display:grid;grid-template-columns:1.4fr 1fr;gap:14px}
-.chart h3{margin:0 0 4px;font-size:15px}
-.chart p{margin:0 0 10px;font-size:12px;color:var(--muted)}
-.box{height:300px;position:relative}
-@media(max-width:900px){.kpis,.grid{grid-template-columns:1fr}}
-&lt;/style&gt;
-&lt;/head&gt;
-&lt;body&gt;
-&lt;main class=&quot;wrap&quot;&gt;
-&lt;div class=&quot;top&quot;&gt;
-  &lt;div class=&quot;kicker&quot;&gt;MONITOR · T7+ RECALL&lt;/div&gt;
-  &lt;h1&gt;流失 7 天以上召回 · 提单监测看板&lt;/h1&gt;
-&lt;/div&gt;
-&lt;section class=&quot;kpis&quot;&gt;
-  &lt;article class=&quot;card&quot;&gt;&lt;div class=&quot;label&quot;&gt;流失用户&lt;/div&gt;&lt;div class=&quot;num&quot;&gt;11,585&lt;/div&gt;&lt;div class=&quot;sub&quot;&gt;8/18 触达用户数&lt;/div&gt;&lt;/article&gt;
-  &lt;article class=&quot;card&quot;&gt;&lt;div class=&quot;label&quot;&gt;提单用户数&lt;/div&gt;&lt;div class=&quot;num g&quot;&gt;2,409&lt;/div&gt;&lt;div class=&quot;sub&quot;&gt;触达日及之后任意提单&lt;/div&gt;&lt;/article&gt;
-  &lt;article class=&quot;card&quot;&gt;&lt;div class=&quot;label&quot;&gt;累计提单率&lt;/div&gt;&lt;div class=&quot;num a&quot;&gt;20.79%&lt;/div&gt;&lt;div class=&quot;sub&quot;&gt;2,409 / 11,585&lt;/div&gt;&lt;/article&gt;
-  &lt;article class=&quot;card&quot;&gt;&lt;div class=&quot;label&quot;&gt;昨日新增提单&lt;/div&gt;&lt;div class=&quot;num p&quot;&gt;43&lt;/div&gt;&lt;div class=&quot;sub&quot;&gt;2026-09-18 首次提单（9/19 仅 3 人，不完整）&lt;/div&gt;&lt;/article&gt;
-&lt;/section&gt;
-&lt;div class=&quot;grid&quot;&gt;
-  &lt;div class=&quot;card chart&quot;&gt;
-    &lt;h3&gt;累计提单用户与提单率&lt;/h3&gt;
-    &lt;p&gt;左轴累计人数，右轴累计提单率。分母固定为 11,585&lt;/p&gt;
-    &lt;div class=&quot;box&quot;&gt;&lt;canvas id=&quot;c1&quot;&gt;&lt;/canvas&gt;&lt;/div&gt;
-  &lt;/div&gt;
-  &lt;div class=&quot;card chart&quot;&gt;
-    &lt;h3&gt;每日新增首次提单&lt;/h3&gt;
-    &lt;p&gt;每人只记召回后第一笔提单所在日&lt;/p&gt;
-    &lt;div class=&quot;box&quot;&gt;&lt;canvas id=&quot;c2&quot;&gt;&lt;/canvas&gt;&lt;/div&gt;
-  &lt;/div&gt;
-&lt;/div&gt;
-&lt;div class=&quot;grid&quot; style=&quot;margin-top:14px&quot;&gt;
-  &lt;div class=&quot;card chart&quot;&gt;
-    &lt;h3&gt;分层 strat 提单率&lt;/h3&gt;
-    &lt;p&gt;人数柱 + 提单率折线&lt;/p&gt;
-    &lt;div class=&quot;box&quot;&gt;&lt;canvas id=&quot;c3&quot;&gt;&lt;/canvas&gt;&lt;/div&gt;
-  &lt;/div&gt;
-  &lt;div class=&quot;card chart&quot;&gt;
-    &lt;h3&gt;流失天数提单率&lt;/h3&gt;
-    &lt;p&gt;人数柱 + 提单率折线 · 7–15 / 16–30 / 31–60 / 61–90 / 91–180 / 180d+&lt;/p&gt;
-    &lt;div class=&quot;box&quot;&gt;&lt;canvas id=&quot;c4&quot;&gt;&lt;/canvas&gt;&lt;/div&gt;
-  &lt;/div&gt;
-&lt;/div&gt;
-&lt;/main&gt;
-&lt;script&gt;
-const DATA = {&quot;daily&quot;: [{&quot;d&quot;: &quot;2026-08-18&quot;, &quot;n&quot;: 131, &quot;cum&quot;: 131, &quot;rate&quot;: 1.13}, {&quot;d&quot;: &quot;2026-08-19&quot;, &quot;n&quot;: 125, &quot;cum&quot;: 256, &quot;rate&quot;: 2.21}, {&quot;d&quot;: &quot;2026-08-20&quot;, &quot;n&quot;: 138, &quot;cum&quot;: 394, &quot;rate&quot;: 3.4}, {&quot;d&quot;: &quot;2026-08-21&quot;, &quot;n&quot;: 102, &quot;cum&quot;: 496, &quot;rate&quot;: 4.28}, {&quot;d&quot;: &quot;2026-08-22&quot;, &quot;n&quot;: 129, &quot;cum&quot;: 625, &quot;rate&quot;: 5.39}, {&quot;d&quot;: &quot;2026-08-23&quot;, &quot;n&quot;: 125, &quot;cum&quot;: 750, &quot;rate&quot;: 6.47}, {&quot;d&quot;: &quot;2026-08-24&quot;, &quot;n&quot;: 142, &quot;cum&quot;: 892, &quot;rate&quot;: 7.7}, {&quot;d&quot;: &quot;2026-08-25&quot;, &quot;n&quot;: 102, &quot;cum&quot;: 994, &quot;rate&quot;: 8.58}, {&quot;d&quot;: &quot;2026-08-26&quot;, &quot;n&quot;: 84, &quot;cum&quot;: 1078, &quot;rate&quot;: 9.31}, {&quot;d&quot;: &quot;2026-08-27&quot;, &quot;n&quot;: 85, &quot;cum&quot;: 1163, &quot;rate&quot;: 10.04}, {&quot;d&quot;: &quot;2026-08-28&quot;, &quot;n&quot;: 81, &quot;cum&quot;: 1244, &quot;rate&quot;: 10.74}, {&quot;d&quot;: &quot;2026-08-29&quot;, &quot;n&quot;: 94, &quot;cum&quot;: 1338, &quot;rate&quot;: 11.55}, {&quot;d&quot;: &quot;2026-08-30&quot;, &quot;n&quot;: 61, &quot;cum&quot;: 1399, &quot;rate&quot;: 12.08}, {&quot;d&quot;: &quot;2026-08-31&quot;, &quot;n&quot;: 70, &quot;cum&quot;: 1469, &quot;rate&quot;: 12.68}, {&quot;d&quot;: &quot;2026-09-01&quot;, &quot;n&quot;: 69, &quot;cum&quot;: 1538, &quot;rate&quot;: 13.28}, {&quot;d&quot;: &quot;2026-09-02&quot;, &quot;n&quot;: 45, &quot;cum&quot;: 1583, &quot;rate&quot;: 13.66}, {&quot;d&quot;: &quot;2026-09-03&quot;, &quot;n&quot;: 58, &quot;cum&quot;: 1641, &quot;rate&quot;: 14.16}, {&quot;d&quot;: &quot;2026-09-04&quot;, &quot;n&quot;: 53, &quot;cum&quot;: 1694, &quot;rate&quot;: 14.62}, {&quot;d&quot;: &quot;2026-09-05&quot;, &quot;n&quot;: 61, &quot;cum&quot;: 1755, &quot;rate&quot;: 15.15}, {&quot;d&quot;: &quot;2026-09-06&quot;, &quot;n&quot;: 61, &quot;cum&quot;: 1816, &quot;rate&quot;: 15.68}, {&quot;d&quot;: &quot;2026-09-07&quot;, &quot;n&quot;: 62, &quot;cum&quot;: 1878, &quot;rate&quot;: 16.21}, {&quot;d&quot;: &quot;2026-09-08&quot;, &quot;n&quot;: 56, &quot;cum&quot;: 1934, &quot;rate&quot;: 16.69}, {&quot;d&quot;: &quot;2026-09-09&quot;, &quot;n&quot;: 45, &quot;cum&quot;: 1979, &quot;rate&quot;: 17.08}, {&quot;d&quot;: &quot;2026-09-10&quot;, &quot;n&quot;: 42, &quot;cum&quot;: 2021, &quot;rate&quot;: 17.44}, {&quot;d&quot;: &quot;2026-09-11&quot;, &quot;n&quot;: 64, &quot;cum&quot;: 2085, &quot;rate&quot;: 18.0}, {&quot;d&quot;: &quot;2026-09-12&quot;, &quot;n&quot;: 68, &quot;cum&quot;: 2153, &quot;rate&quot;: 18.58}, {&quot;d&quot;: &quot;2026-09-13&quot;, &quot;n&quot;: 46, &quot;cum&quot;: 2199, &quot;rate&quot;: 18.98}, {&quot;d&quot;: &quot;2026-09-14&quot;, &quot;n&quot;: 33, &quot;cum&quot;: 2232, &quot;rate&quot;: 19.27}, {&quot;d&quot;: &quot;2026-09-15&quot;, &quot;n&quot;: 42, &quot;cum&quot;: 2274, &quot;rate&quot;: 19.63}, {&quot;d&quot;: &quot;2026-09-16&quot;, &quot;n&quot;: 44, &quot;cum&quot;: 2318, &quot;rate&quot;: 20.01}, {&quot;d&quot;: &quot;2026-09-17&quot;, &quot;n&quot;: 45, &quot;cum&quot;: 2363, &quot;rate&quot;: 20.4}, {&quot;d&quot;: &quot;2026-09-18&quot;, &quot;n&quot;: 43, &quot;cum&quot;: 2406, &quot;rate&quot;: 20.77}, {&quot;d&quot;: &quot;2026-09-19&quot;, &quot;n&quot;: 3, &quot;cum&quot;: 2409, &quot;rate&quot;: 20.79}], &quot;strat&quot;: [{&quot;strat&quot;: &quot;20d+10r&quot;, &quot;n_user&quot;: 5596, &quot;n_apply&quot;: 1257, &quot;pct&quot;: 22.46}, {&quot;strat&quot;: &quot;30d&quot;, &quot;n_user&quot;: 2137, &quot;n_apply&quot;: 526, &quot;pct&quot;: 24.61}, {&quot;strat&quot;: &quot;30d+10r&quot;, &quot;n_user&quot;: 1718, &quot;n_apply&quot;: 170, &quot;pct&quot;: 9.9}, {&quot;strat&quot;: &quot;20d&quot;, &quot;n_user&quot;: 1355, &quot;n_apply&quot;: 338, &quot;pct&quot;: 24.94}, {&quot;strat&quot;: &quot;10d+10r&quot;, &quot;n_user&quot;: 339, &quot;n_apply&quot;: 55, &quot;pct&quot;: 16.22}, {&quot;strat&quot;: &quot;40d&quot;, &quot;n_user&quot;: 254, &quot;n_apply&quot;: 30, &quot;pct&quot;: 11.81}, {&quot;strat&quot;: &quot;10d&quot;, &quot;n_user&quot;: 186, &quot;n_apply&quot;: 33, &quot;pct&quot;: 17.74}], &quot;churn&quot;: [{&quot;bin&quot;: &quot;7-15d&quot;, &quot;n_user&quot;: 1279, &quot;n_apply&quot;: 561, &quot;pct&quot;: 43.86}, {&quot;bin&quot;: &quot;16-30d&quot;, &quot;n_user&quot;: 2018, &quot;n_apply&quot;: 622, &quot;pct&quot;: 30.82}, {&quot;bin&quot;: &quot;31-60d&quot;, &quot;n_user&quot;: 2834, &quot;n_apply&quot;: 624, &quot;pct&quot;: 22.02}, {&quot;bin&quot;: &quot;61-90d&quot;, &quot;n_user&quot;: 2143, &quot;n_apply&quot;: 285, &quot;pct&quot;: 13.3}, {&quot;bin&quot;: &quot;91-180d&quot;, &quot;n_user&quot;: 1890, &quot;n_apply&quot;: 223, &quot;pct&quot;: 11.8}, {&quot;bin&quot;: &quot;180d+&quot;, &quot;n_user&quot;: 1421, &quot;n_apply&quot;: 94, &quot;pct&quot;: 6.62}]};
-const T=&#x27;#43c7e7&#x27;, G=&#x27;#64dcae&#x27;, A=&#x27;#ffc26b&#x27;, P=&#x27;#f68ab0&#x27;;
-const g={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:&#x27;#d5e8f5&#x27;}}},scales:{x:{ticks:{color:&#x27;#9db8cc&#x27;,maxRotation:45,minRotation:0},grid:{color:&#x27;rgba(42,92,126,.25)&#x27;}},y:{ticks:{color:&#x27;#9db8cc&#x27;},grid:{color:&#x27;rgba(42,92,126,.25)&#x27;}}}};
-Chart.defaults.font.family=&#x27;-apple-system,BlinkMacSystemFont,&quot;PingFang SC&quot;,&quot;Microsoft YaHei&quot;,sans-serif&#x27;;
-new Chart(c1,{type:&#x27;line&#x27;,data:{labels:DATA.daily.map(x=&gt;x.d.slice(5)),datasets:[{label:&#x27;累计提单用户&#x27;,data:DATA.daily.map(x=&gt;x.cum),borderColor:T,backgroundColor:&#x27;rgba(67,199,231,.15)&#x27;,fill:true,yAxisID:&#x27;y&#x27;,tension:.25,pointRadius:2},{label:&#x27;累计提单率%&#x27;,data:DATA.daily.map(x=&gt;x.rate),borderColor:A,yAxisID:&#x27;y1&#x27;,tension:.25,pointRadius:2}]},options:{...g,scales:{x:g.scales.x,y:{...g.scales.y,position:&#x27;left&#x27;,title:{display:true,text:&#x27;人&#x27;,color:&#x27;#9db8cc&#x27;}},y1:{position:&#x27;right&#x27;,ticks:{color:&#x27;#9db8cc&#x27;},grid:{drawOnChartArea:false},title:{display:true,text:&#x27;%&#x27;,color:&#x27;#9db8cc&#x27;}}}}});
-new Chart(c2,{type:&#x27;bar&#x27;,data:{labels:DATA.daily.map(x=&gt;x.d.slice(5)),datasets:[{label:&#x27;当日新增首次提单&#x27;,data:DATA.daily.map(x=&gt;x.n),backgroundColor:G}]},options:g});
-new Chart(c3,{type:&#x27;bar&#x27;,data:{labels:DATA.strat.map(x=&gt;x.strat),datasets:[{label:&#x27;用户数&#x27;,data:DATA.strat.map(x=&gt;x.n_user),backgroundColor:&#x27;rgba(67,199,231,.35)&#x27;,yAxisID:&#x27;y&#x27;},{label:&#x27;提单率%&#x27;,data:DATA.strat.map(x=&gt;x.pct),type:&#x27;line&#x27;,borderColor:P,yAxisID:&#x27;y1&#x27;,tension:.2}]},options:{...g,scales:{x:g.scales.x,y:{...g.scales.y,position:&#x27;left&#x27;},y1:{position:&#x27;right&#x27;,ticks:{color:&#x27;#9db8cc&#x27;},grid:{drawOnChartArea:false}}}}});
-new Chart(c4,{type:&#x27;bar&#x27;,data:{labels:DATA.churn.map(x=&gt;x.bin),datasets:[{label:&#x27;用户数&#x27;,data:DATA.churn.map(x=&gt;x.n_user),backgroundColor:&#x27;rgba(67,199,231,.35)&#x27;,yAxisID:&#x27;y&#x27;},{label:&#x27;提单率%&#x27;,data:DATA.churn.map(x=&gt;x.pct),type:&#x27;line&#x27;,borderColor:P,yAxisID:&#x27;y1&#x27;,tension:.2}]},options:{...g,scales:{x:g.scales.x,y:{...g.scales.y,position:&#x27;left&#x27;},y1:{position:&#x27;right&#x27;,ticks:{color:&#x27;#9db8cc&#x27;},grid:{drawOnChartArea:false}}}}});
-&lt;/script&gt;
-&lt;/body&gt;
-&lt;/html&gt;
-</pre>
-  </details>
-</section>
+<div class="grid" style="margin-top:14px">
+  <div class="card chart"><h3>按到期日的盈利率</h3><p>当日到期放款单 (repaid−remit)/remit</p><div class="box"><canvas id="c5"></canvas></div></div>
+  <div class="card chart"><h3>按到期日的逾期率</h3><p>当日到期单中 loan_status_code=8 占比</p><div class="box"><canvas id="c6"></canvas></div></div>
+</div>
+<div class="grid" style="margin-top:14px">
+  <div class="card chart"><h3>转化结构</h3><p>已提单 vs 尚未提单</p><div class="box"><canvas id="c7"></canvas></div></div>
+  <div class="card chart"><h3>本周 vs 累计</h3><p>本周提单用户 / 本周首次转化 / 本周放款</p><div class="box"><canvas id="c8"></canvas></div></div>
+</div>
+<div class="grid" style="margin-top:14px">
+  <div class="card chart"><h3>分层 strat 提单率</h3><p>人数柱 + 提单率折线</p><div class="box"><canvas id="c9"></canvas></div></div>
+  <div class="card chart"><h3>流失天数提单率</h3><p>7–15 / 16–30 / 31–60 / 61–90 / 91–180 / 180d+</p><div class="box"><canvas id="c10"></canvas></div></div>
+</div>
+<p class="foot">数据：kaby_dw · wangchuanliang.t7recalllist_0818_0819 · recall_date=2026-08-18 · 库内 CURRENT_DATE=2026-09-20</p>
 </main>
 <script>
-const DATA = {"daily": [{"d": "2026-08-18", "n": 131, "cum": 131, "rate": 1.13}, {"d": "2026-08-19", "n": 125, "cum": 256, "rate": 2.21}, {"d": "2026-08-20", "n": 138, "cum": 394, "rate": 3.4}, {"d": "2026-08-21", "n": 102, "cum": 496, "rate": 4.28}, {"d": "2026-08-22", "n": 129, "cum": 625, "rate": 5.39}, {"d": "2026-08-23", "n": 125, "cum": 750, "rate": 6.47}, {"d": "2026-08-24", "n": 142, "cum": 892, "rate": 7.7}, {"d": "2026-08-25", "n": 102, "cum": 994, "rate": 8.58}, {"d": "2026-08-26", "n": 84, "cum": 1078, "rate": 9.31}, {"d": "2026-08-27", "n": 85, "cum": 1163, "rate": 10.04}, {"d": "2026-08-28", "n": 81, "cum": 1244, "rate": 10.74}, {"d": "2026-08-29", "n": 94, "cum": 1338, "rate": 11.55}, {"d": "2026-08-30", "n": 61, "cum": 1399, "rate": 12.08}, {"d": "2026-08-31", "n": 70, "cum": 1469, "rate": 12.68}, {"d": "2026-09-01", "n": 69, "cum": 1538, "rate": 13.28}, {"d": "2026-09-02", "n": 45, "cum": 1583, "rate": 13.66}, {"d": "2026-09-03", "n": 58, "cum": 1641, "rate": 14.16}, {"d": "2026-09-04", "n": 53, "cum": 1694, "rate": 14.62}, {"d": "2026-09-05", "n": 61, "cum": 1755, "rate": 15.15}, {"d": "2026-09-06", "n": 61, "cum": 1816, "rate": 15.68}, {"d": "2026-09-07", "n": 62, "cum": 1878, "rate": 16.21}, {"d": "2026-09-08", "n": 56, "cum": 1934, "rate": 16.69}, {"d": "2026-09-09", "n": 45, "cum": 1979, "rate": 17.08}, {"d": "2026-09-10", "n": 42, "cum": 2021, "rate": 17.44}, {"d": "2026-09-11", "n": 64, "cum": 2085, "rate": 18.0}, {"d": "2026-09-12", "n": 68, "cum": 2153, "rate": 18.58}, {"d": "2026-09-13", "n": 46, "cum": 2199, "rate": 18.98}, {"d": "2026-09-14", "n": 33, "cum": 2232, "rate": 19.27}, {"d": "2026-09-15", "n": 42, "cum": 2274, "rate": 19.63}, {"d": "2026-09-16", "n": 44, "cum": 2318, "rate": 20.01}, {"d": "2026-09-17", "n": 45, "cum": 2363, "rate": 20.4}, {"d": "2026-09-18", "n": 43, "cum": 2406, "rate": 20.77}, {"d": "2026-09-19", "n": 3, "cum": 2409, "rate": 20.79}], "strat": [{"strat": "20d+10r", "n_user": 5596, "n_apply": 1257, "pct": 22.46}, {"strat": "30d", "n_user": 2137, "n_apply": 526, "pct": 24.61}, {"strat": "30d+10r", "n_user": 1718, "n_apply": 170, "pct": 9.9}, {"strat": "20d", "n_user": 1355, "n_apply": 338, "pct": 24.94}, {"strat": "10d+10r", "n_user": 339, "n_apply": 55, "pct": 16.22}, {"strat": "40d", "n_user": 254, "n_apply": 30, "pct": 11.81}, {"strat": "10d", "n_user": 186, "n_apply": 33, "pct": 17.74}], "churn": [{"bin": "7-15d", "n_user": 1279, "n_apply": 561, "pct": 43.86}, {"bin": "16-30d", "n_user": 2018, "n_apply": 622, "pct": 30.82}, {"bin": "31-60d", "n_user": 2834, "n_apply": 624, "pct": 22.02}, {"bin": "61-90d", "n_user": 2143, "n_apply": 285, "pct": 13.3}, {"bin": "91-180d", "n_user": 1890, "n_apply": 223, "pct": 11.8}, {"bin": "180d+", "n_user": 1421, "n_apply": 94, "pct": 6.62}]};
-const T='#43c7e7', G='#64dcae', A='#ffc26b', P='#f68ab0';
-const g={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#d5e8f5'}}},scales:{x:{ticks:{color:'#9db8cc',maxRotation:45,minRotation:0},grid:{color:'rgba(42,92,126,.25)'}},y:{ticks:{color:'#9db8cc'},grid:{color:'rgba(42,92,126,.25)'}}}};
+const D = {"kpi": {"n_user": 11585, "n_apply": 2461, "apply_rate": 21.24, "n_apply_week": 644, "n_first_week": 262, "n_remit": 3644, "n_remit_week": 634, "n_due": 1422, "n_due_od": 480, "profit_pct": 7.71, "overdue_pct": 33.76, "week_start": "2026-09-14", "as_of": "2026-09-20", "recall_date": "2026-08-18", "remit_day": "o.remit_date::date"}, "first_daily": [{"d": "2026-08-18", "n": 131, "cum": 131, "rate": 1.13}, {"d": "2026-08-19", "n": 125, "cum": 256, "rate": 2.21}, {"d": "2026-08-20", "n": 138, "cum": 394, "rate": 3.4}, {"d": "2026-08-21", "n": 102, "cum": 496, "rate": 4.28}, {"d": "2026-08-22", "n": 129, "cum": 625, "rate": 5.39}, {"d": "2026-08-23", "n": 125, "cum": 750, "rate": 6.47}, {"d": "2026-08-24", "n": 142, "cum": 892, "rate": 7.7}, {"d": "2026-08-25", "n": 102, "cum": 994, "rate": 8.58}, {"d": "2026-08-26", "n": 84, "cum": 1078, "rate": 9.31}, {"d": "2026-08-27", "n": 85, "cum": 1163, "rate": 10.04}, {"d": "2026-08-28", "n": 81, "cum": 1244, "rate": 10.74}, {"d": "2026-08-29", "n": 94, "cum": 1338, "rate": 11.55}, {"d": "2026-08-30", "n": 61, "cum": 1399, "rate": 12.08}, {"d": "2026-08-31", "n": 70, "cum": 1469, "rate": 12.68}, {"d": "2026-09-01", "n": 69, "cum": 1538, "rate": 13.28}, {"d": "2026-09-02", "n": 45, "cum": 1583, "rate": 13.66}, {"d": "2026-09-03", "n": 58, "cum": 1641, "rate": 14.16}, {"d": "2026-09-04", "n": 53, "cum": 1694, "rate": 14.62}, {"d": "2026-09-05", "n": 61, "cum": 1755, "rate": 15.15}, {"d": "2026-09-06", "n": 61, "cum": 1816, "rate": 15.68}, {"d": "2026-09-07", "n": 62, "cum": 1878, "rate": 16.21}, {"d": "2026-09-08", "n": 56, "cum": 1934, "rate": 16.69}, {"d": "2026-09-09", "n": 45, "cum": 1979, "rate": 17.08}, {"d": "2026-09-10", "n": 42, "cum": 2021, "rate": 17.44}, {"d": "2026-09-11", "n": 64, "cum": 2085, "rate": 18.0}, {"d": "2026-09-12", "n": 68, "cum": 2153, "rate": 18.58}, {"d": "2026-09-13", "n": 46, "cum": 2199, "rate": 18.98}, {"d": "2026-09-14", "n": 33, "cum": 2232, "rate": 19.27}, {"d": "2026-09-15", "n": 42, "cum": 2274, "rate": 19.63}, {"d": "2026-09-16", "n": 44, "cum": 2318, "rate": 20.01}, {"d": "2026-09-17", "n": 45, "cum": 2363, "rate": 20.4}, {"d": "2026-09-18", "n": 43, "cum": 2406, "rate": 20.77}, {"d": "2026-09-19", "n": 53, "cum": 2459, "rate": 21.23}, {"d": "2026-09-20", "n": 2, "cum": 2461, "rate": 21.24}], "apply_daily": [{"d": "2026-08-18", "n_order": 132, "n_user": 131}, {"d": "2026-08-19", "n_order": 129, "n_user": 125}, {"d": "2026-08-20", "n_order": 144, "n_user": 143}, {"d": "2026-08-21", "n_order": 110, "n_user": 110}, {"d": "2026-08-22", "n_order": 136, "n_user": 134}, {"d": "2026-08-23", "n_order": 140, "n_user": 136}, {"d": "2026-08-24", "n_order": 161, "n_user": 155}, {"d": "2026-08-25", "n_order": 120, "n_user": 119}, {"d": "2026-08-26", "n_order": 99, "n_user": 98}, {"d": "2026-08-27", "n_order": 115, "n_user": 112}, {"d": "2026-08-28", "n_order": 113, "n_user": 110}, {"d": "2026-08-29", "n_order": 128, "n_user": 126}, {"d": "2026-08-30", "n_order": 107, "n_user": 106}, {"d": "2026-08-31", "n_order": 119, "n_user": 118}, {"d": "2026-09-01", "n_order": 106, "n_user": 106}, {"d": "2026-09-02", "n_order": 91, "n_user": 91}, {"d": "2026-09-03", "n_order": 98, "n_user": 96}, {"d": "2026-09-04", "n_order": 112, "n_user": 112}, {"d": "2026-09-05", "n_order": 134, "n_user": 130}, {"d": "2026-09-06", "n_order": 117, "n_user": 115}, {"d": "2026-09-07", "n_order": 119, "n_user": 118}, {"d": "2026-09-08", "n_order": 114, "n_user": 112}, {"d": "2026-09-09", "n_order": 98, "n_user": 95}, {"d": "2026-09-10", "n_order": 113, "n_user": 113}, {"d": "2026-09-11", "n_order": 142, "n_user": 137}, {"d": "2026-09-12", "n_order": 146, "n_user": 144}, {"d": "2026-09-13", "n_order": 119, "n_user": 116}, {"d": "2026-09-14", "n_order": 113, "n_user": 109}, {"d": "2026-09-15", "n_order": 124, "n_user": 123}, {"d": "2026-09-16", "n_order": 94, "n_user": 93}, {"d": "2026-09-17", "n_order": 130, "n_user": 124}, {"d": "2026-09-18", "n_order": 100, "n_user": 99}, {"d": "2026-09-19", "n_order": 144, "n_user": 143}, {"d": "2026-09-20", "n_order": 2, "n_user": 2}], "remit_daily": [{"d": "2026-08-18", "n": 129, "cum": 129}, {"d": "2026-08-19", "n": 119, "cum": 248}, {"d": "2026-08-20", "n": 132, "cum": 380}, {"d": "2026-08-21", "n": 103, "cum": 483}, {"d": "2026-08-22", "n": 126, "cum": 609}, {"d": "2026-08-23", "n": 126, "cum": 735}, {"d": "2026-08-24", "n": 143, "cum": 878}, {"d": "2026-08-25", "n": 111, "cum": 989}, {"d": "2026-08-26", "n": 96, "cum": 1085}, {"d": "2026-08-27", "n": 102, "cum": 1187}, {"d": "2026-08-28", "n": 97, "cum": 1284}, {"d": "2026-08-29", "n": 121, "cum": 1405}, {"d": "2026-08-30", "n": 99, "cum": 1504}, {"d": "2026-08-31", "n": 112, "cum": 1616}, {"d": "2026-09-01", "n": 99, "cum": 1715}, {"d": "2026-09-02", "n": 89, "cum": 1804}, {"d": "2026-09-03", "n": 90, "cum": 1894}, {"d": "2026-09-04", "n": 102, "cum": 1996}, {"d": "2026-09-05", "n": 121, "cum": 2117}, {"d": "2026-09-06", "n": 106, "cum": 2223}, {"d": "2026-09-07", "n": 112, "cum": 2335}, {"d": "2026-09-08", "n": 102, "cum": 2437}, {"d": "2026-09-09", "n": 92, "cum": 2529}, {"d": "2026-09-10", "n": 104, "cum": 2633}, {"d": "2026-09-11", "n": 135, "cum": 2768}, {"d": "2026-09-12", "n": 135, "cum": 2903}, {"d": "2026-09-13", "n": 107, "cum": 3010}, {"d": "2026-09-14", "n": 95, "cum": 3105}, {"d": "2026-09-15", "n": 111, "cum": 3216}, {"d": "2026-09-16", "n": 83, "cum": 3299}, {"d": "2026-09-17", "n": 129, "cum": 3428}, {"d": "2026-09-18", "n": 85, "cum": 3513}, {"d": "2026-09-19", "n": 130, "cum": 3643}, {"d": "2026-09-20", "n": 1, "cum": 3644}], "due_daily": [{"d": "2026-08-24", "n_due": 6, "n_od": 2, "repaid": 1982.0, "remit": 2510.0, "profit_pct": -21.04, "overdue_pct": 33.33}, {"d": "2026-08-25", "n_due": 10, "n_od": 2, "repaid": 5773.0, "remit": 4640.0, "profit_pct": 24.42, "overdue_pct": 20.0}, {"d": "2026-08-26", "n_due": 12, "n_od": 0, "repaid": 9959.0, "remit": 6484.0, "profit_pct": 53.59, "overdue_pct": 0.0}, {"d": "2026-08-27", "n_due": 13, "n_od": 1, "repaid": 18517.0, "remit": 20728.0, "profit_pct": -10.67, "overdue_pct": 7.69}, {"d": "2026-08-28", "n_due": 11, "n_od": 2, "repaid": 12683.0, "remit": 8404.0, "profit_pct": 50.92, "overdue_pct": 18.18}, {"d": "2026-08-29", "n_due": 14, "n_od": 8, "repaid": 3704.0, "remit": 9521.0, "profit_pct": -61.1, "overdue_pct": 57.14}, {"d": "2026-08-30", "n_due": 12, "n_od": 6, "repaid": 8437.0, "remit": 11271.0, "profit_pct": -25.14, "overdue_pct": 50.0}, {"d": "2026-08-31", "n_due": 33, "n_od": 6, "repaid": 107917.0, "remit": 77102.0, "profit_pct": 39.97, "overdue_pct": 18.18}, {"d": "2026-09-01", "n_due": 27, "n_od": 8, "repaid": 37934.0, "remit": 56459.0, "profit_pct": -32.81, "overdue_pct": 29.63}, {"d": "2026-09-02", "n_due": 24, "n_od": 7, "repaid": 50216.0, "remit": 51053.0, "profit_pct": -1.64, "overdue_pct": 29.17}, {"d": "2026-09-03", "n_due": 13, "n_od": 6, "repaid": 25025.0, "remit": 37325.0, "profit_pct": -32.95, "overdue_pct": 46.15}, {"d": "2026-09-04", "n_due": 22, "n_od": 5, "repaid": 52927.0, "remit": 46116.0, "profit_pct": 14.77, "overdue_pct": 22.73}, {"d": "2026-09-05", "n_due": 20, "n_od": 9, "repaid": 27955.0, "remit": 36833.0, "profit_pct": -24.1, "overdue_pct": 45.0}, {"d": "2026-09-06", "n_due": 21, "n_od": 4, "repaid": 71508.0, "remit": 62224.0, "profit_pct": 14.92, "overdue_pct": 19.05}, {"d": "2026-09-07", "n_due": 73, "n_od": 28, "repaid": 127499.5, "remit": 129945.0, "profit_pct": -1.88, "overdue_pct": 38.36}, {"d": "2026-09-08", "n_due": 56, "n_od": 19, "repaid": 113514.0, "remit": 108130.0, "profit_pct": 4.98, "overdue_pct": 33.93}, {"d": "2026-09-09", "n_due": 87, "n_od": 28, "repaid": 178056.0, "remit": 194287.0, "profit_pct": -8.35, "overdue_pct": 32.18}, {"d": "2026-09-10", "n_due": 62, "n_od": 23, "repaid": 180287.0, "remit": 173435.0, "profit_pct": 3.95, "overdue_pct": 37.1}, {"d": "2026-09-11", "n_due": 74, "n_od": 26, "repaid": 235106.0, "remit": 217911.0, "profit_pct": 7.89, "overdue_pct": 35.14}, {"d": "2026-09-12", "n_due": 59, "n_od": 18, "repaid": 133626.0, "remit": 109032.0, "profit_pct": 22.56, "overdue_pct": 30.51}, {"d": "2026-09-13", "n_due": 71, "n_od": 24, "repaid": 223765.0, "remit": 204658.0, "profit_pct": 9.34, "overdue_pct": 33.8}, {"d": "2026-09-14", "n_due": 99, "n_od": 39, "repaid": 389410.47, "remit": 351215.0, "profit_pct": 10.88, "overdue_pct": 39.39}, {"d": "2026-09-15", "n_due": 109, "n_od": 29, "repaid": 480984.53, "remit": 389730.0, "profit_pct": 23.41, "overdue_pct": 26.61}, {"d": "2026-09-16", "n_due": 63, "n_od": 25, "repaid": 312744.0, "remit": 272760.0, "profit_pct": 14.66, "overdue_pct": 39.68}, {"d": "2026-09-17", "n_due": 121, "n_od": 38, "repaid": 537359.0, "remit": 448746.0, "profit_pct": 19.75, "overdue_pct": 31.4}, {"d": "2026-09-18", "n_due": 102, "n_od": 40, "repaid": 389962.0, "remit": 351469.0, "profit_pct": 10.95, "overdue_pct": 39.22}, {"d": "2026-09-19", "n_due": 102, "n_od": 37, "repaid": 448825.0, "remit": 417473.0, "profit_pct": 7.51, "overdue_pct": 36.27}, {"d": "2026-09-20", "n_due": 106, "n_od": 40, "repaid": 369686.0, "remit": 429660.0, "profit_pct": -13.96, "overdue_pct": 37.74}], "strat": [{"strat": "20d+10r", "n_user": 5596, "n_apply": 1283, "pct": 22.93}, {"strat": "30d", "n_user": 2137, "n_apply": 539, "pct": 25.22}, {"strat": "30d+10r", "n_user": 1718, "n_apply": 179, "pct": 10.42}, {"strat": "20d", "n_user": 1355, "n_apply": 342, "pct": 25.24}, {"strat": "10d+10r", "n_user": 339, "n_apply": 55, "pct": 16.22}, {"strat": "40d", "n_user": 254, "n_apply": 30, "pct": 11.81}, {"strat": "10d", "n_user": 186, "n_apply": 33, "pct": 17.74}], "churn": [{"bin": "7-15d", "n_user": 1279, "n_apply": 574, "pct": 44.88}, {"bin": "16-30d", "n_user": 2018, "n_apply": 634, "pct": 31.42}, {"bin": "31-60d", "n_user": 2834, "n_apply": 636, "pct": 22.44}, {"bin": "61-90d", "n_user": 2143, "n_apply": 291, "pct": 13.58}, {"bin": "91-180d", "n_user": 1890, "n_apply": 228, "pct": 12.06}, {"bin": "180d+", "n_user": 1421, "n_apply": 98, "pct": 6.9}]};
+
+const col = {cy:'#43c7e7', gr:'#64dcae', am:'#ffc26b', pk:'#f68ab0'};
 Chart.defaults.font.family='-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif';
-new Chart(c1,{type:'line',data:{labels:DATA.daily.map(x=>x.d.slice(5)),datasets:[{label:'累计提单用户',data:DATA.daily.map(x=>x.cum),borderColor:T,backgroundColor:'rgba(67,199,231,.15)',fill:true,yAxisID:'y',tension:.25,pointRadius:2},{label:'累计提单率%',data:DATA.daily.map(x=>x.rate),borderColor:A,yAxisID:'y1',tension:.25,pointRadius:2}]},options:{...g,scales:{x:g.scales.x,y:{...g.scales.y,position:'left',title:{display:true,text:'人',color:'#9db8cc'}},y1:{position:'right',ticks:{color:'#9db8cc'},grid:{drawOnChartArea:false},title:{display:true,text:'%',color:'#9db8cc'}}}}});
-new Chart(c2,{type:'bar',data:{labels:DATA.daily.map(x=>x.d.slice(5)),datasets:[{label:'当日新增首次提单',data:DATA.daily.map(x=>x.n),backgroundColor:G}]},options:g});
-new Chart(c3,{type:'bar',data:{labels:DATA.strat.map(x=>x.strat),datasets:[{label:'用户数',data:DATA.strat.map(x=>x.n_user),backgroundColor:'rgba(67,199,231,.35)',yAxisID:'y'},{label:'提单率%',data:DATA.strat.map(x=>x.pct),type:'line',borderColor:P,yAxisID:'y1',tension:.2}]},options:{...g,scales:{x:g.scales.x,y:{...g.scales.y,position:'left'},y1:{position:'right',ticks:{color:'#9db8cc'},grid:{drawOnChartArea:false}}}}});
-new Chart(c4,{type:'bar',data:{labels:DATA.churn.map(x=>x.bin),datasets:[{label:'用户数',data:DATA.churn.map(x=>x.n_user),backgroundColor:'rgba(67,199,231,.35)',yAxisID:'y'},{label:'提单率%',data:DATA.churn.map(x=>x.pct),type:'line',borderColor:P,yAxisID:'y1',tension:.2}]},options:{...g,scales:{x:g.scales.x,y:{...g.scales.y,position:'left'},y1:{position:'right',ticks:{color:'#9db8cc'},grid:{drawOnChartArea:false}}}}});
+Chart.defaults.color='#aac5da';
+function base(y2) {
+  const scales = {
+    x: {ticks:{color:'#aac5da', maxRotation:45}, grid:{display:false}},
+    y: {type:'linear', position:'left', ticks:{color:'#aac5da'}, grid:{color:'rgba(42,92,126,.25)'}}
+  };
+  if (y2) scales.y2 = {type:'linear', position:'right', ticks:{color:'#ffc26b'}, grid:{drawOnChartArea:false}};
+  return {responsive:true, maintainAspectRatio:false, interaction:{mode:'index', intersect:false},
+    plugins:{legend:{labels:{color:'#eff8ff'}}}, scales};
+}
+function line(id, labels, datasets, y2) {
+  new Chart(document.getElementById(id), {type:'line', data:{labels, datasets}, options:base(y2)});
+}
+const fd = D.first_daily, ad = D.apply_daily, rd = D.remit_daily, dd = D.due_daily, k=D.kpi;
+line('c1', fd.map(x=>x.d.slice(5)), [
+  {label:'累计提单人数', data:fd.map(x=>x.cum), borderColor:col.cy, backgroundColor:'rgba(67,199,231,.12)', fill:true, tension:.25, yAxisID:'y', pointRadius:2},
+  {label:'提单率%', data:fd.map(x=>x.rate), borderColor:col.am, tension:.25, yAxisID:'y2', pointRadius:2}
+], true);
+new Chart(document.getElementById('c2'), {type:'bar', data:{labels:fd.map(x=>x.d.slice(5)), datasets:[
+  {label:'当日首次提单', data:fd.map(x=>x.n), backgroundColor:col.gr}
+]}, options:base(false)});
+new Chart(document.getElementById('c3'), {type:'bar', data:{labels:ad.map(x=>x.d.slice(5)), datasets:[
+  {label:'当日提单用户', data:ad.map(x=>x.n_user), backgroundColor:'rgba(67,199,231,.7)'},
+  {label:'当日提单订单', data:ad.map(x=>x.n_order), backgroundColor:'rgba(246,138,176,.55)'}
+]}, options:base(false)});
+line('c4', rd.map(x=>x.d.slice(5)), [
+  {label:'当日放款单', data:rd.map(x=>x.n), borderColor:col.gr, tension:.25, yAxisID:'y', pointRadius:2},
+  {label:'累计放款单', data:rd.map(x=>x.cum), borderColor:col.am, tension:.25, yAxisID:'y2', pointRadius:2}
+], true);
+line('c5', dd.map(x=>x.d.slice(5)), [
+  {label:'到期盈利率%', data:dd.map(x=>x.profit_pct), borderColor:col.gr, tension:.25, pointRadius:2, spanGaps:true}
+], false);
+line('c6', dd.map(x=>x.d.slice(5)), [
+  {label:'到期逾期率%', data:dd.map(x=>x.overdue_pct), borderColor:col.pk, tension:.25, pointRadius:2, spanGaps:true},
+  {label:'到期单量', data:dd.map(x=>x.n_due), borderColor:col.cy, tension:.25, yAxisID:'y2', pointRadius:2}
+], true);
+new Chart(document.getElementById('c7'), {type:'doughnut', data:{labels:['已提单','尚未提单'], datasets:[{data:[k.n_apply, k.n_user-k.n_apply], backgroundColor:[col.gr, 'rgba(42,92,126,.55)'], borderWidth:0}]},
+  options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:'#eff8ff'}}}}});
+new Chart(document.getElementById('c8'), {type:'bar', data:{labels:['本周提单用户','本周新增首次','本周放款单','累计提单','累计放款'],
+  datasets:[{label:'人数/单量', data:[k.n_apply_week, k.n_first_week, k.n_remit_week, k.n_apply, k.n_remit],
+    backgroundColor:[col.cy, col.pk, col.am, col.gr, 'rgba(67,199,231,.45)']}]}, options:base(false)});
+new Chart(document.getElementById('c9'), {type:'bar', data:{labels:D.strat.map(x=>x.strat), datasets:[
+  {label:'名单人数', data:D.strat.map(x=>x.n_user), backgroundColor:'rgba(67,199,231,.35)', yAxisID:'y'},
+  {label:'提单率%', data:D.strat.map(x=>x.pct), type:'line', borderColor:col.pk, yAxisID:'y2', tension:.2, pointRadius:3}
+]}, options:base(true)});
+new Chart(document.getElementById('c10'), {type:'bar', data:{labels:D.churn.map(x=>x.bin), datasets:[
+  {label:'名单人数', data:D.churn.map(x=>x.n_user), backgroundColor:'rgba(67,199,231,.35)', yAxisID:'y'},
+  {label:'提单率%', data:D.churn.map(x=>x.pct), type:'line', borderColor:col.pk, yAxisID:'y2', tension:.2, pointRadius:3}
+]}, options:base(true)});
 </script>
-</body>
-</html>
+</body></html>
