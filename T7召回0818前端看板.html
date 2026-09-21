@@ -60,7 +60,7 @@ h1{font-size:24px;margin:8px 0 6px}
 </div>
 <div class="grid" style="margin-top:14px">
   <div class="card chart"><h3>转化结构</h3><p>已提单 vs 尚未提单</p><div class="box"><canvas id="c7"></canvas></div></div>
-  <div class="card chart"><h3>本周 vs 累计</h3><p>本周提单用户 / 本周首次转化 / 本周放款</p><div class="box"><canvas id="c8"></canvas></div></div>
+  <div class="card chart"><h3>本周 vs 累计</h3><p>本周新增提单用户 / 本周提单用户 / 本周放款</p><div class="box"><canvas id="c8"></canvas></div></div>
 </div>
 <div class="grid" style="margin-top:14px">
   <div class="card chart"><h3>分层 strat 提单率</h3><p>人数柱 + 提单率折线</p><div class="box"><canvas id="c9"></canvas></div></div>
@@ -109,17 +109,54 @@ line('c6', dd.map(x=>x.d.slice(5)), [
   {label:'到期单量', data:dd.map(x=>x.n_due), borderColor:col.cy, tension:.25, yAxisID:'y2', pointRadius:2}
 ], true);
 new Chart(document.getElementById('c7'), {type:'doughnut', data:{labels:['已提单','尚未提单'], datasets:[{data:[k.n_apply, k.n_user-k.n_apply], backgroundColor:[col.gr, 'rgba(42,92,126,.55)'], borderWidth:0}]},
-  options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:'#eff8ff'}}}}});
-new Chart(document.getElementById('c8'), {type:'bar', data:{labels:['本周提单用户','本周新增首次','本周放款单','累计提单','累计放款'],
-  datasets:[{label:'人数/单量', data:[k.n_apply_week, k.n_first_week, k.n_remit_week, k.n_apply, k.n_remit],
-    backgroundColor:[col.cy, col.pk, col.am, col.gr, 'rgba(67,199,231,.45)']}]}, options:base(false)});
+  options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:'#eff8ff'}}}},
+  plugins:[{id:'pieLabel', afterDatasetsDraw(chart){
+    const {ctx} = chart; const ds = chart.data.datasets[0];
+    const total = ds.data.reduce((a,b)=>a+b,0);
+    const meta = chart.getDatasetMeta(0);
+    meta.data.forEach((arc,i)=>{
+      const v = ds.data[i]; const pos = arc.tooltipPosition();
+      ctx.save(); ctx.fillStyle='#eff8ff'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.font='12px sans-serif'; ctx.fillText(chart.data.labels[i], pos.x, pos.y-9);
+      ctx.font='11px sans-serif'; ctx.fillText(Number(v).toLocaleString()+' · '+(100*v/total).toFixed(2)+'%', pos.x, pos.y+9);
+      ctx.restore();
+    });
+  }}]});
+new Chart(document.getElementById('c8'), {type:'bar', data:{labels:['本周新增提单用户','本周提单用户','本周放款单','累计提单','累计放款'],
+  datasets:[{label:'人数/单量', data:[k.n_first_week, k.n_apply_week, k.n_remit_week, k.n_apply, k.n_remit],
+    backgroundColor:[col.pk, col.cy, col.am, col.gr, 'rgba(67,199,231,.45)']}]},
+  options:Object.assign(base(false), {layout:{padding:{top:22}}}),
+  plugins:[{id:'barLabel', afterDatasetsDraw(chart){
+    const {ctx}=chart; const meta=chart.getDatasetMeta(0);
+    ctx.save(); ctx.fillStyle='#eff8ff'; ctx.font='11px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+    meta.data.forEach((pt,j)=>{ const v=chart.data.datasets[0].data[j]; if(v==null) return; ctx.fillText(Number(v).toLocaleString(), pt.x, pt.y-4); });
+    ctx.restore();
+  }}]});
 new Chart(document.getElementById('c9'), {type:'bar', data:{labels:D.strat.map(x=>x.strat), datasets:[
   {label:'名单人数', data:D.strat.map(x=>x.n_user), backgroundColor:'rgba(67,199,231,.35)', yAxisID:'y'},
   {label:'提单率%', data:D.strat.map(x=>x.pct), type:'line', borderColor:col.pk, yAxisID:'y2', tension:.2, pointRadius:3}
-]}, options:base(true)});
+]}, options:Object.assign(base(true), {layout:{padding:{top:18}}}),
+  plugins:[{id:'rateLabel9', afterDatasetsDraw(chart){
+    const {ctx}=chart; chart.data.datasets.forEach((ds,i)=>{
+      if(!String(ds.label).includes('提单率')) return;
+      const meta=chart.getDatasetMeta(i);
+      ctx.save(); ctx.font='11px sans-serif'; ctx.fillStyle='#f68ab0'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+      meta.data.forEach((pt,j)=>{ const v=ds.data[j]; if(v==null) return; ctx.fillText(Number(v).toFixed(2)+'%', pt.x, pt.y-7); });
+      ctx.restore();
+    });
+  }}]});
 new Chart(document.getElementById('c10'), {type:'bar', data:{labels:D.churn.map(x=>x.bin), datasets:[
   {label:'名单人数', data:D.churn.map(x=>x.n_user), backgroundColor:'rgba(67,199,231,.35)', yAxisID:'y'},
   {label:'提单率%', data:D.churn.map(x=>x.pct), type:'line', borderColor:col.pk, yAxisID:'y2', tension:.2, pointRadius:3}
-]}, options:base(true)});
+]}, options:Object.assign(base(true), {layout:{padding:{top:18}}}),
+  plugins:[{id:'rateLabel10', afterDatasetsDraw(chart){
+    const {ctx}=chart; chart.data.datasets.forEach((ds,i)=>{
+      if(!String(ds.label).includes('提单率')) return;
+      const meta=chart.getDatasetMeta(i);
+      ctx.save(); ctx.font='11px sans-serif'; ctx.fillStyle='#f68ab0'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+      meta.data.forEach((pt,j)=>{ const v=ds.data[j]; if(v==null) return; ctx.fillText(Number(v).toFixed(2)+'%', pt.x, pt.y-7); });
+      ctx.restore();
+    });
+  }}]});
 </script>
 </body></html>
