@@ -411,7 +411,7 @@ h1{{font-size:24px;margin:8px 0 6px}}
 </div>
 <div class="grid" style="margin-top:14px">
   <div class="card chart"><h3>转化结构</h3><p>已提单 vs 尚未提单</p><div class="box"><canvas id="c7"></canvas></div></div>
-  <div class="card chart"><h3>本周 vs 累计</h3><p>本周新增提单用户 / 本周提单用户 / 本周放款</p><div class="box"><canvas id="c8"></canvas></div></div>
+  <div class="card chart"><h3>本周 vs 累计</h3><p>本周新增提单用户 / 本周提单用户 / 本周放款单量</p><div class="box"><canvas id="c8"></canvas></div></div>
 </div>
 <div class="grid" style="margin-top:14px">
   <div class="card chart"><h3>分层 strat 提单率</h3><p>人数柱 + 提单率折线</p><div class="box"><canvas id="c9"></canvas></div></div>
@@ -446,8 +446,6 @@ function drawRateLabels(chart) {
     ctx.save();
     ctx.font='11px sans-serif';
     ctx.fillStyle='#f68ab0';
-    ctx.strokeStyle='#071b2f';
-    ctx.lineWidth=4;
     ctx.textBaseline='bottom';
     pts.forEach((pt,j)=>{
       const v=ds.data[j];
@@ -458,9 +456,7 @@ function drawRateLabels(chart) {
       const prev=pts[j-1], next=pts[j+1];
       if(prev && next && pt.y>=prev.y && pt.y>=next.y) dy=-20;
       ctx.textAlign=align;
-      const t=Number(v).toFixed(2)+'%';
-      ctx.strokeText(t, pt.x+dx, pt.y+dy);
-      ctx.fillText(t, pt.x+dx, pt.y+dy);
+      ctx.fillText(Number(v).toFixed(2)+'%', pt.x+dx, pt.y+dy);
     });
     ctx.restore();
   });
@@ -500,7 +496,7 @@ new Chart(document.getElementById('c7'), {type:'doughnut', data:{labels:['已提
       ctx.restore();
     });
   }}]});
-new Chart(document.getElementById('c8'), {type:'bar', data:{labels:['本周新增提单用户','本周提单用户','本周放款单','累计提单','累计放款'],
+new Chart(document.getElementById('c8'), {type:'bar', data:{labels:['本周新增提单用户','本周提单用户','本周放款单量','累计提单人数','累计放款单量'],
   datasets:[{label:'人数/单量', data:[k.n_first_week, k.n_apply_week, k.n_remit_week, k.n_apply, k.n_remit],
     backgroundColor:[col.pk, col.cy, col.am, col.gr, 'rgba(67,199,231,.45)']}]},
   options:Object.assign(base(false), {layout:{padding:{top:22}}}),
@@ -513,29 +509,13 @@ new Chart(document.getElementById('c8'), {type:'bar', data:{labels:['本周新�
 new Chart(document.getElementById('c9'), {type:'bar', data:{labels:D.strat.map(x=>x.strat), datasets:[
   {label:'名单人数', data:D.strat.map(x=>x.n_user), backgroundColor:'rgba(67,199,231,.35)', yAxisID:'y'},
   {label:'提单率%', data:D.strat.map(x=>x.pct), type:'line', borderColor:col.pk, yAxisID:'y2', tension:.2, pointRadius:3}
-]}, options:Object.assign(base(true), {layout:{padding:{top:18}}}),
-  plugins:[{id:'rateLabel9', afterDatasetsDraw(chart){
-    const {ctx}=chart; chart.data.datasets.forEach((ds,i)=>{
-      if(!String(ds.label).includes('提单率')) return;
-      const meta=chart.getDatasetMeta(i);
-      ctx.save(); ctx.font='11px sans-serif'; ctx.fillStyle='#f68ab0'; ctx.textAlign='center'; ctx.textBaseline='bottom';
-      meta.data.forEach((pt,j)=>{ const v=ds.data[j]; if(v==null) return; ctx.fillText(Number(v).toFixed(2)+'%', pt.x, pt.y-7); });
-      ctx.restore();
-    });
-  }}]});
+]}, options:Object.assign(base(true), {layout:{padding:{top:28,right:8}}}),
+  plugins:[{id:'rateLabel9', afterDatasetsDraw(chart){ drawRateLabels(chart); }}]});
 new Chart(document.getElementById('c10'), {type:'bar', data:{labels:D.churn.map(x=>x.bin), datasets:[
   {label:'名单人数', data:D.churn.map(x=>x.n_user), backgroundColor:'rgba(67,199,231,.35)', yAxisID:'y'},
   {label:'提单率%', data:D.churn.map(x=>x.pct), type:'line', borderColor:col.pk, yAxisID:'y2', tension:.2, pointRadius:3}
-]}, options:Object.assign(base(true), {layout:{padding:{top:18}}}),
-  plugins:[{id:'rateLabel10', afterDatasetsDraw(chart){
-    const {ctx}=chart; chart.data.datasets.forEach((ds,i)=>{
-      if(!String(ds.label).includes('提单率')) return;
-      const meta=chart.getDatasetMeta(i);
-      ctx.save(); ctx.font='11px sans-serif'; ctx.fillStyle='#f68ab0'; ctx.textAlign='center'; ctx.textBaseline='bottom';
-      meta.data.forEach((pt,j)=>{ const v=ds.data[j]; if(v==null) return; ctx.fillText(Number(v).toFixed(2)+'%', pt.x, pt.y-7); });
-      ctx.restore();
-    });
-  }}]});
+]}, options:Object.assign(base(true), {layout:{padding:{top:28,right:8}}}),
+  plugins:[{id:'rateLabel10', afterDatasetsDraw(chart){ drawRateLabels(chart); }}]});
 </script>
 </body></html>
 """
